@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Term-Definition Converter</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            line-height: 1.5;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            margin: 1rem 0;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1e293b;
+        }
+
+        .header p {
+            margin: 0.5rem 0 0;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Term-Definition Converter</h1>
+            <p>Convert term definitions from "==" format to "##" format</p>
+        </div>
+
+        <textarea id="input" placeholder="Paste your text here...
+Example:
+== Title
+Definition line 1
+Definition line 2"></textarea>
+        
+        <button id="convertBtn" onclick="convert()">Convert</button>
+
+        <textarea id="output" readonly placeholder="Converted text will appear here..."></textarea>
+    </div>
+
+    <script>
+        const button = document.getElementById('convertBtn');
+        async function convert() {
+            const input = document.getElementById('input').value;
+            const sections = input.split('==');
+            let result = '';
+            
+            sections.slice(1).forEach((section, index) => {
+                if (index > 0) {
+                    result += '####';
+                }
+                
+                const lines = section.trim().split('\n');
+                const title = lines[0].trim();
+                
+                result += title + '##';
+                
+                const content = lines.slice(1)
+                    .map(line => line.replace(/\t/g, '    ').trimRight())
+                    .join('\n')
+                    .trim();
+                
+                result += content;
+            });
+            
+            result += '####';
+            document.getElementById('output').value = result;
+            
+            try {
+                await navigator.clipboard.writeText(result);
+                button.textContent = 'Copied to the clipboard!';
+                setTimeout(() => { button.textContent = 'Convert'; }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        }
+
+        // Enable Ctrl+Enter shortcut for conversion
+        document.getElementById('input').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                convert();
+            }
+        });
+    </script>
+</body>
+</html>
