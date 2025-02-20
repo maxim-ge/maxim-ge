@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,7 @@
             background: white;
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         textarea {
@@ -65,6 +66,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -77,7 +79,7 @@ Example:
 == Title
 Definition line 1
 Definition line 2"></textarea>
-        
+
         <button id="convertBtn" onclick="convert()">Convert</button>
 
         <textarea id="output" readonly placeholder="Converted text will appear here..."></textarea>
@@ -85,32 +87,55 @@ Definition line 2"></textarea>
 
     <script>
         const button = document.getElementById('convertBtn');
+
+        /**
+          * 
+          * Formats, ebnf
+          * 
+          * Input = {Section}
+          * Section = TitleLine BodyLines
+          * BodyLines = {BodyLine}
+          * TitleLine = (TitleLine1 | TitleLine2)
+          * TitleLine1 = {space} "==" {space} <Title>
+          * TitleLine2 = {space} "**" {space} <Title> {space} "**"
+          *
+          * Output: {TitleDef}
+          * 
+          * Title1##Definition line 1
+          * Definition line 2####
+          * 
+          * The function:
+          * 1. Converts input text to output text
+          * 2. Attempts to copy result to clipboard
+          * 3. Shows temporary "Copied" confirmation
+          * 
+          */
         async function convert() {
             const input = document.getElementById('input').value;
             const sections = input.split('==');
             let result = '';
-            
+
             sections.slice(1).forEach((section, index) => {
                 if (index > 0) {
                     result += '####';
                 }
-                
+
                 const lines = section.trim().split('\n');
                 const title = lines[0].trim();
-                
+
                 result += title + '##';
-                
+
                 const content = lines.slice(1)
                     .map(line => line.replace(/\t/g, '    ').trimRight())
                     .join('\n')
                     .trim();
-                
+
                 result += content;
             });
-            
+
             result += '####';
             document.getElementById('output').value = result;
-            
+
             try {
                 await navigator.clipboard.writeText(result);
                 button.textContent = 'Copied to the clipboard!';
@@ -121,11 +146,12 @@ Definition line 2"></textarea>
         }
 
         // Enable Ctrl+Enter shortcut for conversion
-        document.getElementById('input').addEventListener('keydown', function(e) {
+        document.getElementById('input').addEventListener('keydown', function (e) {
             if (e.ctrlKey && e.key === 'Enter') {
                 convert();
             }
         });
     </script>
 </body>
+
 </html>
