@@ -105,7 +105,9 @@ Definition line 2"></textarea>
             let currentBody = [];
             
             function isTitle1(line) {
-                return line.trim().startsWith('==') && line.trim().length > 2;
+                const trimmed = line.trim();
+                return (trimmed.startsWith('==') || trimmed.startsWith('=')) && 
+                       trimmed.length > (trimmed.startsWith('==') ? 2 : 1);
             }
             
             function isTitle2(line) {
@@ -118,7 +120,9 @@ Definition line 2"></textarea>
             function extractTitle(line) {
                 const trimmed = line.trim();
                 if (isTitle1(line)) {
-                    return trimmed.substring(2).trim();
+                    return trimmed.startsWith('==') ? 
+                        trimmed.substring(2).trim() : 
+                        trimmed.substring(1).trim();
                 }
                 if (isTitle2(line)) {
                     return trimmed.slice(2, -2).trim();
