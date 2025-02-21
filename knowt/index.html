@@ -89,52 +89,70 @@ Definition line 2"></textarea>
         const button = document.getElementById('convertBtn');
 
         /**
-          * 
-          * Formats, ebnf
-          * 
-          * Input = {Section}
-          * Section = TitleLine BodyLines
-          * BodyLines = {BodyLine}
-          * TitleLine = (TitleLine1 | TitleLine2)
-          * TitleLine1 = {space} "==" {space} <Title>
-          * TitleLine2 = {space} "**" {space} <Title> {space} "**"
-          *
-          * Output: {TitleDef}
-          * 
-          * Title1##Definition line 1
-          * Definition line 2####
-          * 
           * The function:
+          *
           * 1. Converts input text to output text
           * 2. Attempts to copy result to clipboard
           * 3. Shows temporary "Copied" confirmation
-          * 
+          *
+          * Coversions is made reading lines one by one and tracking status (finit automation) 
           */
         async function convert() {
             const input = document.getElementById('input').value;
-            const sections = input.split('==');
+            const lines = input.split('\n');
             let result = '';
-
-            sections.slice(1).forEach((section, index) => {
-                if (index > 0) {
-                    result += '####';
+            let currentTitle = '';
+            let currentBody = [];
+            
+            function isTitle1(line) {
+                return line.trim().startsWith('==') && line.trim().length > 2;
+            }
+            
+            function isTitle2(line) {
+                const trimmed = line.trim();
+                return trimmed.startsWith('**') && 
+                       trimmed.endsWith('**') && 
+                       trimmed.length > 4;
+            }
+            
+            function extractTitle(line) {
+                const trimmed = line.trim();
+                if (isTitle1(line)) {
+                    return trimmed.substring(2).trim();
                 }
+                if (isTitle2(line)) {
+                    return trimmed.slice(2, -2).trim();
+                }
+                return null;
+            }
 
-                const lines = section.trim().split('\n');
-                const title = lines[0].trim();
+            function processSection() {
+                if (currentTitle && currentBody.length > 0) {
+                    if (result) {
+                        result += '####';
+                    }
+                    result += currentTitle + '##' + currentBody.join('\n').trim();
+                }
+            }
 
-                result += title + '##';
+            for (const line of lines) {
+                const title = extractTitle(line);
+                if (title !== null) {
+                    processSection();
+                    currentTitle = title;
+                    currentBody = [];
+                } else if (currentTitle) {
+                    currentBody.push(line.replace(/\t/g, '    ').trimRight());
+                }
+            }
+            
+            processSection();
+            if (result) {
+                result += '####';
+            }
 
-                const content = lines.slice(1)
-                    .map(line => line.replace(/\t/g, '    ').trimRight())
-                    .join('\n')
-                    .trim();
-
-                result += content;
-            });
-
-            result += '####';
-            document.getElementById('output').value = result;
+            const output = document.getElementById('output');
+            output.value = result;
 
             try {
                 await navigator.clipboard.writeText(result);
