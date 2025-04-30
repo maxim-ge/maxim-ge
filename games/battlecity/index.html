@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Battle City for iPad Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background-color: #2c3e50;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1366px; /* iPad Pro 12.9 width */
+            max-height: 1024px; /* iPad Pro 12.9 height */
+            background-color: #000;
+            overflow: hidden;
+            outline: none; /* Remove focus outline */
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-container {
+            position: absolute;
+            bottom: 30px;
+            width: 180px;
+            height: 180px;
+            z-index: 10;
+        }
+        
+        #left-controls {
+            left: 30px;
+        }
+        
+        #right-controls {
+            right: 30px;
+            display: none;
+        }
+        
+        .d-pad {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .d-button {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+        }
+        
+        .up {
+            top: 0;
+            left: 60px;
+        }
+        
+        .right {
+            top: 60px;
+            left: 120px;
+        }
+        
+        .down {
+            top: 120px;
+            left: 60px;
+        }
+        
+        .left {
+            top: 60px;
+            left: 0;
+        }
+        
+        .fire {
+            position: absolute;
+            bottom: 30px;
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 0, 0, 0.3);
+            border: 2px solid rgba(255, 0, 0, 0.6);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        #left-fire {
+            left: 220px;
+        }
+        
+        #right-fire {
+            right: 220px;
+            display: none;
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        
+        #game-title {
+            color: #f39c12;
+            font-size: 60px;
+            margin-bottom: 50px;
+            text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+        
+        .menu-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 300px;
+            text-align: center;
+        }
+        
+        .menu-button:hover {
+            background-color: #2980b9;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+        }
+        
+        #game-over h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #e74c3c;
+        }
+        
+        #game-over p {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        #pause-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 15;
+        }
+        
+        #scoreboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            z-index: 15;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="scoreboard">
+            <div id="player1-score">P1: 0</div>
+            <div id="player2-score" style="display: none;">P2: 0</div>
+            <div id="lives">Lives: 3</div>
+        </div>
+        
+        <button id="pause-button">||</button>
+        
+        <div id="left-controls" class="control-container">
+            <div class="d-pad">
+                <div class="d-button up" id="p1-up">↑</div>
+                <div class="d-button right" id="p1-right">→</div>
+                <div class="d-button down" id="p1-down">↓</div>
+                <div class="d-button left" id="p1-left">←</div>
+            </div>
+        </div>
+        
+        <div class="fire" id="left-fire">FIRE</div>
+        
+        <div id="right-controls" class="control-container">
+            <div class="d-pad">
+                <div class="d-button up" id="p2-up">↑</div>
+                <div class="d-button right" id="p2-right">→</div>
+                <div class="d-button down" id="p2-down">↓</div>
+                <div class="d-button left" id="p2-left">←</div>
+            </div>
+        </div>
+        
+        <div class="fire" id="right-fire">FIRE</div>
+        
+        <div id="menu">
+            <h1 id="game-title">BATTLE CITY</h1>
+            <button class="menu-button" id="single-player">Single Player</button>
+            <button class="menu-button" id="cooperative">Two Player Cooperative</button>
+            <button class="menu-button" id="combat">Two Player Combat</button>
+        </div>
+        
+        <div id="game-over">
+            <h2>Game Over</h2>
+            <p id="final-score">Final Score: 0</p>
+            <p id="winner"></p>
+            <button class="menu-button" id="restart">Restart</button>
+            <button class="menu-button" id="main-menu">Main Menu</button>
+        </div>
+    </div>
+
+    <script src="logic.js"></script>
+</body>
+</html>
