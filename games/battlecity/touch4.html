@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4-Player multitouch controls</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            touch-action: none;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100%;
+            height: 100vh;
+            background-color: #eee;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border: 2px solid #333;
+            position: relative;
+        }
+
+        .player1 {
+            background-color: rgba(255, 99, 71, 0.3);
+        }
+
+        .player2 {
+            background-color: rgba(65, 105, 225, 0.3);
+        }
+
+        .player3 {
+            background-color: rgba(50, 205, 50, 0.3);
+        }
+
+        .player4 {
+            background-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .player-label {
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .d-pad {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+
+        .d-pad-button {
+            position: absolute;
+            background-color: #ddd;
+            border: 2px solid #333;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .up {
+            top: 0;
+            left: 50px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .right {
+            top: 50px;
+            left: 100px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .down {
+            top: 100px;
+            left: 50px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .left {
+            top: 50px;
+            left: 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .fire-button {
+            width: 80px;
+            height: 80px;
+            background-color: #ff6347;
+            border: 2px solid #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            user-select: none;
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+        }
+
+        .active {
+            background-color: #999;
+            transform: scale(0.95);
+        }
+
+        .status {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+        }
+
+        .control-status {
+            margin: 10px auto;
+            width: 200px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid #333;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+            background-color: #ccc;
+        }
+
+        .status-active {
+            background-color: #2ecc71;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls-container">
+        <div class="control-group player1" id="player1">
+            <div class="player-label">Player 1</div>
+            <div class="status" id="status1">Touches: 0</div>
+            <div class="d-pad">
+                <div class="d-pad-button up" id="p1-up">↑</div>
+                <div class="d-pad-button right" id="p1-right">→</div>
+                <div class="d-pad-button down" id="p1-down">↓</div>
+                <div class="d-pad-button left" id="p1-left">←</div>
+            </div>
+            <div class="fire-button" id="p1-fire">FIRE</div>
+            <div class="control-status">
+                <div>Up: <span class="status-indicator" id="p1-up-status"></span></div>
+                <div>Right: <span class="status-indicator" id="p1-right-status"></span></div>
+                <div>Down: <span class="status-indicator" id="p1-down-status"></span></div>
+                <div>Left: <span class="status-indicator" id="p1-left-status"></span></div>
+                <div>Fire: <span class="status-indicator" id="p1-fire-status"></span></div>
+            </div>
+        </div>
+
+        <div class="control-group player2" id="player2">
+            <div class="player-label">Player 2</div>
+            <div class="status" id="status2">Touches: 0</div>
+            <div class="d-pad">
+                <div class="d-pad-button up" id="p2-up">↑</div>
+                <div class="d-pad-button right" id="p2-right">→</div>
+                <div class="d-pad-button down" id="p2-down">↓</div>
+                <div class="d-pad-button left" id="p2-left">←</div>
+            </div>
+            <div class="fire-button" id="p2-fire">FIRE</div>
+            <div class="control-status">
+                <div>Up: <span class="status-indicator" id="p2-up-status"></span></div>
+                <div>Right: <span class="status-indicator" id="p2-right-status"></span></div>
+                <div>Down: <span class="status-indicator" id="p2-down-status"></span></div>
+                <div>Left: <span class="status-indicator" id="p2-left-status"></span></div>
+                <div>Fire: <span class="status-indicator" id="p2-fire-status"></span></div>
+            </div>
+        </div>
+
+        <div class="control-group player3" id="player3">
+            <div class="player-label">Player 3</div>
+            <div class="status" id="status3">Touches: 0</div>
+            <div class="d-pad">
+                <div class="d-pad-button up" id="p3-up">↑</div>
+                <div class="d-pad-button right" id="p3-right">→</div>
+                <div class="d-pad-button down" id="p3-down">↓</div>
+                <div class="d-pad-button left" id="p3-left">←</div>
+            </div>
+            <div class="fire-button" id="p3-fire">FIRE</div>
+            <div class="control-status">
+                <div>Up: <span class="status-indicator" id="p3-up-status"></span></div>
+                <div>Right: <span class="status-indicator" id="p3-right-status"></span></div>
+                <div>Down: <span class="status-indicator" id="p3-down-status"></span></div>
+                <div>Left: <span class="status-indicator" id="p3-left-status"></span></div>
+                <div>Fire: <span class="status-indicator" id="p3-fire-status"></span></div>
+            </div>
+        </div>
+
+        <div class="control-group player4" id="player4">
+            <div class="player-label">Player 4</div>
+            <div class="status" id="status4">Touches: 0</div>
+            <div class="d-pad">
+                <div class="d-pad-button up" id="p4-up">↑</div>
+                <div class="d-pad-button right" id="p4-right">→</div>
+                <div class="d-pad-button down" id="p4-down">↓</div>
+                <div class="d-pad-button left" id="p4-left">←</div>
+            </div>
+            <div class="fire-button" id="p4-fire">FIRE</div>
+            <div class="control-status">
+                <div>Up: <span class="status-indicator" id="p4-up-status"></span></div>
+                <div>Right: <span class="status-indicator" id="p4-right-status"></span></div>
+                <div>Down: <span class="status-indicator" id="p4-down-status"></span></div>
+                <div>Left: <span class="status-indicator" id="p4-left-status"></span></div>
+                <div>Fire: <span class="status-indicator" id="p4-fire-status"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Unified state management for all pointers (mouse and touch)
+            const activePointers = {};
+            const playerTouches = {
+                player1: 0,
+                player2: 0,
+                player3: 0,
+                player4: 0
+            };
+
+            // Get all interactive elements
+            const buttons = document.querySelectorAll('.d-pad-button, .fire-button');
+            const controlGroups = document.querySelectorAll('.control-group');
+
+            // =========== CORE POINTER INTERACTION LOGIC ===========
+
+            function pointerStart(pointerId, x, y) {
+                const element = elementFromPointer(x, y);
+                const player = playerFromPointer(x, y);
+
+                if (element && player) {
+                    activePointers[pointerId] = {
+                        element: element,
+                        player: player
+                    };
+
+                    activateElement(element, true);
+                    updateControlStatus(element, true);
+                    playerTouches[player]++;
+                    updateStatus();
+                }
+            }
+
+            function pointerMove(pointerId, x, y) {
+                if (!activePointers[pointerId]) return;
+
+                const activePointer = activePointers[pointerId];
+                const element = activePointer.element;
+                const player = activePointer.player;
+
+                // Special handling for D-pad buttons
+                if (isDpadElement(element)) {
+                    const dpad = getDpadFromPointer(x, y);
+
+                    if (dpad) {
+                        // Get the new direction based on position relative to D-pad center
+                        const newElement = getDpadDirection(dpad, x, y);
+
+                        // Update if element changed
+                        if (newElement && newElement !== element) {
+                            activateElement(element, false);
+                            updateControlStatus(element, false);
+
+                            activateElement(newElement, true);
+                            updateControlStatus(newElement, true);
+
+                            activePointer.element = newElement;
+                        }
+                    }
+                } else {
+                    // Regular element handling
+                    const newElement = elementFromPointer(x, y);
+                    const newPlayer = playerFromPointer(x, y);
+
+                    // If moved to a different element or no element
+                    if (newElement !== element) {
+                        // Remove active state from previous element
+                        activateElement(element, false);
+                        updateControlStatus(element, false);
+
+                        // Update to new element if it exists and is in the same player area
+                        if (newElement && newPlayer === player) {
+                            activePointer.element = newElement;
+                            activateElement(newElement, true);
+                            updateControlStatus(newElement, true);
+                        } else {
+                            // Moved outside of any button or player area
+                            playerTouches[player]--;
+                            delete activePointers[pointerId];
+                            updateStatus();
+                        }
+                    }
+                }
+            }
+
+            function pointerEnd(pointerId) {
+                if (activePointers[pointerId]) {
+                    const activePointer = activePointers[pointerId];
+                    activateElement(activePointer.element, false);
+                    updateControlStatus(activePointer.element, false);
+                    playerTouches[activePointer.player]--;
+                    delete activePointers[pointerId];
+                    updateStatus();
+                }
+            }
+
+            // =========== UI UPDATE FUNCTIONS ===========
+
+            function activateElement(element, isActive) {
+                if (!element) return;
+
+                if (isActive) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            }
+
+            function updateControlStatus(element, isActive) {
+                if (!element) return;
+
+                // Extract the player number and control type from the element ID
+                // Format: "p{player}-{control}"
+                const idParts = element.id.split('-');
+                if (idParts.length !== 2) return;
+
+                const playerNum = idParts[0].replace('p', '');
+                const controlType = idParts[1];
+
+                // Get the corresponding status indicator
+                const statusIndicator = document.getElementById(`${idParts[0]}-${controlType}-status`);
+                if (statusIndicator) {
+                    if (isActive) {
+                        statusIndicator.classList.add('status-active');
+                    } else {
+                        statusIndicator.classList.remove('status-active');
+                    }
+                }
+            }
+
+            function updateStatus() {
+                for (let i = 1; i <= 4; i++) {
+                    document.getElementById(`status${i}`).textContent = `Touches: ${playerTouches[`player${i}`]}`;
+                }
+            }
+
+            // =========== ELEMENT DETECTION FUNCTIONS ===========
+
+            function elementFromPointer(x, y) {
+                for (const button of buttons) {
+                    const rect = button.getBoundingClientRect();
+                    if (
+                        x >= rect.left &&
+                        x <= rect.right &&
+                        y >= rect.top &&
+                        y <= rect.bottom
+                    ) {
+                        return button;
+                    }
+                }
+                return null;
+            }
+
+            function playerFromPointer(x, y) {
+                for (let i = 0; i < controlGroups.length; i++) {
+                    const rect = controlGroups[i].getBoundingClientRect();
+                    if (
+                        x >= rect.left &&
+                        x <= rect.right &&
+                        y >= rect.top &&
+                        y <= rect.bottom
+                    ) {
+                        return `player${i + 1}`;
+                    }
+                }
+                return null;
+            }
+
+            // =========== D-PAD SPECIFIC FUNCTIONS ===========
+
+            function isDpadElement(element) {
+                return element && element.classList.contains('d-pad-button');
+            }
+
+            function getDpadFromPointer(x, y) {
+                for (let i = 0; i < controlGroups.length; i++) {
+                    const rect = controlGroups[i].getBoundingClientRect();
+                    if (
+                        x >= rect.left &&
+                        x <= rect.right &&
+                        y >= rect.top &&
+                        y <= rect.bottom
+                    ) {
+                        return controlGroups[i].querySelector('.d-pad');
+                    }
+                }
+                return null;
+            }
+
+            function getDpadDirection(dpad, x, y) {
+                if (!dpad) return null;
+
+                // Find which button based on position relative to d-pad center
+                const dpadRect = dpad.getBoundingClientRect();
+                const dpadCenterX = dpadRect.left + dpadRect.width / 2;
+                const dpadCenterY = dpadRect.top + dpadRect.height / 2;
+
+                // Calculate direction based on position relative to d-pad center
+                const dx = x - dpadCenterX;
+                const dy = y - dpadCenterY;
+
+                // Determine which direction based on the largest component
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal movement dominates
+                    return dx > 0 ? dpad.querySelector('.right') : dpad.querySelector('.left');
+                } else {
+                    // Vertical movement dominates
+                    return dy > 0 ? dpad.querySelector('.down') : dpad.querySelector('.up');
+                }
+            }
+
+            // =========== MOUSE EVENT HANDLERS ===========
+
+            document.addEventListener('mousedown', function (e) {
+                pointerStart('mouse', e.clientX, e.clientY);
+            });
+
+            document.addEventListener('mousemove', function (e) {
+                pointerMove('mouse', e.clientX, e.clientY);
+            });
+
+            document.addEventListener('mouseup', function () {
+                pointerEnd('mouse');
+            });
+
+            // =========== TOUCH EVENT HANDLERS ===========
+
+            document.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                const touches = e.changedTouches;
+
+                for (let i = 0; i < touches.length; i++) {
+                    const touch = touches[i];
+                    pointerStart(touch.identifier, touch.clientX, touch.clientY);
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchmove', function (e) {
+                e.preventDefault();
+                const touches = e.changedTouches;
+
+                for (let i = 0; i < touches.length; i++) {
+                    const touch = touches[i];
+                    pointerMove(touch.identifier, touch.clientX, touch.clientY);
+                }
+            }, { passive: false });
+
+            function handleTouchEnd(e) {
+                const touches = e.changedTouches;
+
+                for (let i = 0; i < touches.length; i++) {
+                    const touch = touches[i];
+                    pointerEnd(touch.identifier);
+                }
+            }
+
+            document.addEventListener('touchend', handleTouchEnd);
+            document.addEventListener('touchcancel', handleTouchEnd);
+
+            // Prevent dragging from causing issues
+            document.addEventListener('dragstart', function (e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+
+</html>
