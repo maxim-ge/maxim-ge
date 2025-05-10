@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexDB Performance Benchmark</title>
+    <!-- Include Dexie.js from CDN -->
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+    <!-- Link to bench CSS file -->
+    <link rel="stylesheet" href="bench.css">
+</head>
+
+<body>
+    <header>
+        <h1>Local Storage (IndexDB) Performance Benchmark</h1>
+    </header>
+
+    <div class="container">
+        <section class="parameters">
+            <h2>Parameters</h2>
+            <div class="parameter-group">
+                <div class="parameter">
+                    <label for="num-files">Number of files:</label>
+                    <input type="number" id="num-files" min="10" max="100000" value="1000" class="param-input">
+                    <p class="description">Total files to be processed</p>
+                </div>
+                <div class="parameter">
+                    <label for="avg-file-size">Average file size (KB):</label>
+                    <input type="number" id="avg-file-size" min="1" max="10000" value="100" class="param-input">
+                    <p class="description">Mean size of each file</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="progress-section">
+            <h2>Progress</h2>
+            <div class="progress-container">
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                    <div id="progress-percentage" class="progress-percentage">0%</div>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-group">
+                        <div class="stat">
+                            <span class="stat-label">Files processed:</span>
+                            <span id="files-processed" class="stat-value">0</span>
+                            <p class="description">Current count of processed files</p>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Processing rate:</span>
+                            <span id="processing-rate" class="stat-value">0 files/s</span>
+                            <p class="description">Files per second</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-group">
+                        <div class="stat">
+                            <span class="stat-label">Elapsed time:</span>
+                            <span id="elapsed-time" class="stat-value">0:00</span>
+                            <p class="description">Time since benchmark started</p>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Estimated time remaining:</span>
+                            <span id="estimated-time" class="stat-value">--:--</span>
+                            <p class="description">Predicted time to completion</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-group">
+                        <div class="stat">
+                            <span class="stat-label">Average file size:</span>
+                            <span id="actual-avg-size" class="stat-value">0 KB</span>
+                            <p class="description">Mean size of processed files</p>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Total data processed:</span>
+                            <span id="total-data" class="stat-value">0 MB</span>
+                            <p class="description">Cumulative data size processed</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-group">
+                        <div class="stat">
+                            <span class="stat-label">Memory usage:</span>
+                            <span id="memory-usage" class="stat-value">0 MB</span>
+                            <p class="description">Current memory consumption</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="controls">
+            <button id="read-benchmark" class="btn-primary">Start Read Benchmark</button>
+            <button id="write-benchmark" class="btn-primary">Start Write Benchmark</button>
+            <button id="stop-benchmark" class="btn-danger" disabled>Stop</button>
+        </section>
+    </div>
+
+    <div id="status-message" class="status-message"></div>
+
+    <!-- Link to bench JS file -->
+    <script src="bench.js"></script>
+</body>
+
+</html>
