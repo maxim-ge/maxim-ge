@@ -192,7 +192,6 @@ class TouchController {
     }
 
     pointerEnd(pointerId) {
-        console.log(`Pointer ${pointerId} ended`);
         const activePointer = this.activePointers[pointerId];
         if (!activePointer) {
             return;
