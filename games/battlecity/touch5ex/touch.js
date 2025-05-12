@@ -143,14 +143,16 @@ class TouchController {
         }
 
         const activePointer = {
+            pointerId: pointerId,
             playerId: playerId,
             x: x,
             y: y,
             direction: null
         };
 
-        if (this.playerTouches[playerId] == 1) {
+        if (this.playerTouches[playerId] > 0 && !this.fire) {
             activePointer.direction = 'fire';
+            this.fire = true;
             this.trigger('fire-down', playerId, activePointer.direction);
         }
 
@@ -167,8 +169,7 @@ class TouchController {
         }
 
         if (activePointer.direction == 'fire') {
-            this.trigger('fire-down', activePointer.playerId, activePointer.direction);
-            delete this.activePointers[pointerId];
+            this.removePointer(activePointer);
             return
         }
 
@@ -176,9 +177,7 @@ class TouchController {
 
         // PlayerId changed
         if (activePointer.direction && playerId != activePointer.playerId) {
-            this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
-            this.playerTouches[activePointer.playerId]--;
-            delete this.activePointers[pointerId];
+            this.removePointer(activePointer);
             return;
         }
 
@@ -197,15 +196,18 @@ class TouchController {
         if (!activePointer) {
             return;
         }
-        if (activePointer.direction) {
-            if (activePointer.direction == 'fire') {
-                this.trigger('fire-up', activePointer.playerId, activePointer.direction);
-            } else {
-                this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
-            }
+        this.removePointer(activePointer);
+    }
+
+    removePointer(activePointer) {
+        if (activePointer.direction == 'fire') {
+            this.trigger('fire-up', activePointer.playerId, activePointer.direction);
+            this.fire = false;
+        } else if (activePointer.direction) {
+            this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
         }
         this.playerTouches[activePointer.playerId]--;
-        delete this.activePointers[pointerId];
+        delete this.activePointers[activePointer.pointerId];
     }
 
 
