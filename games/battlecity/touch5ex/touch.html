@@ -11,7 +11,7 @@
 <body>
     <div class="controls-container">
         <div class="control-group player1" id="player1">
-            <div class="player-label">Player 1</div>
+            <div class="player-label">Player 1.1</div>
             <div class="status" id="status1">Touches: 0</div>
             <div class="d-pad">
                 <div class="d-pad-button up" id="p1-up">↑</div>
@@ -89,10 +89,10 @@
 
     <script src="touch.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Create and initialize the touch controller
             const touchController = new TouchController().init();
-            
+
             // Track active buttons state
             const activeButtons = {
                 player1: { up: false, right: false, down: false, left: false, fire: false },
@@ -100,13 +100,13 @@
                 player3: { up: false, right: false, down: false, left: false, fire: false },
                 player4: { up: false, right: false, down: false, left: false, fire: false }
             };
-            
+
             // Helper function to update UI for button state changes
             function updateButtonUI(playerId, direction, isActive) {
                 // Update the button visual state
                 const elementId = `p${playerId.slice(-1)}-${direction}`;
                 const element = document.getElementById(elementId);
-                
+
                 if (element) {
                     if (isActive) {
                         element.classList.add('active');
@@ -114,11 +114,11 @@
                         element.classList.remove('active');
                     }
                 }
-                
+
                 // Update status indicator
                 const statusIndicatorId = `${elementId}-status`;
                 const statusIndicator = document.getElementById(statusIndicatorId);
-                
+
                 if (statusIndicator) {
                     if (isActive) {
                         statusIndicator.classList.add('status-active');
@@ -126,36 +126,36 @@
                         statusIndicator.classList.remove('status-active');
                     }
                 }
-                
+
                 // Update player touch count
                 const playerNum = playerId.slice(-1);
                 const touchCount = touchController.getPlayerTouchCount(playerId);
                 document.getElementById(`status${playerNum}`).textContent = `Touches: ${touchCount}`;
-                
+
                 // Update internal state tracking
                 const playerState = activeButtons[playerId];
                 if (playerState) {
                     playerState[direction] = isActive;
                 }
             }
-            
+
             // Register callback for arrow button pressed
-            touchController.on('arrow-down', function(playerId, direction) {
+            touchController.on('arrow-down', function (playerId, direction) {
                 updateButtonUI(playerId, direction, true);
             });
-            
+
             // Register callback for arrow button released
-            touchController.on('arrow-up', function(playerId, direction) {
+            touchController.on('arrow-up', function (playerId, direction) {
                 updateButtonUI(playerId, direction, false);
             });
-            
+
             // Register callback for fire button pressed
-            touchController.on('fire-down', function(playerId, direction) {
+            touchController.on('fire-down', function (playerId, direction) {
                 updateButtonUI(playerId, 'fire', true);
             });
-            
+
             // Register callback for fire button released
-            touchController.on('fire-up', function(playerId, direction) {
+            touchController.on('fire-up', function (playerId, direction) {
                 updateButtonUI(playerId, 'fire', false);
             });
         });

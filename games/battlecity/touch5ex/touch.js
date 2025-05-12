@@ -177,6 +177,7 @@ class TouchController {
         // PlayerId changed
         if (activePointer.direction && playerId != activePointer.playerId) {
             this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
+            this.playerTouches[activePointer.playerId]--;
             delete this.activePointers[pointerId];
             return;
         }
@@ -189,74 +190,6 @@ class TouchController {
         this.trigger('arrow-down', activePointer.playerId, direction);
 
         return;
-
-        // const activePointer = this.activePointers[pointerId];
-        // const element = activePointer.element;
-        // const playerId = activePointer.playerId;
-        // const player = activePointer.player;
-
-        // // Special handling for D-pad buttons
-        // const dpad = this.getDpadFromPointer(x, y);
-
-        // if (dpad) {
-        //     console.log("dpad handling", dpad);
-
-        //     // Get the new direction based on position relative to D-pad center
-        //     const newElement = this.getDpadDirection(dpad, x, y);
-
-        //     // Update if element changed
-        //     if (newElement && newElement !== element) {
-        //         if (element) {
-        //             // Determine old and new directions
-        //             const oldDirection = element.classList[1]; // up, down, left, right
-        //             this.trigger('arrow-up', playerId, oldDirection);
-        //         }
-
-        //         const newDirection = newElement.classList[1];
-        //         this.trigger('arrow-down', playerId, newDirection);
-        //         activePointer.element = newElement;
-        //     }
-        // } else {
-        //     // Regular element handling
-        //     console.log("Regular element handling", newElementInfo);
-
-        //     const newElementInfo = this.getElementAndPlayerFromPointer(x, y);
-
-        //     // Element is changed
-        //     if (element && newElementInfo && newElementInfo.element !== element) {
-        //     }
-
-        //     // If moved outside of element or to different player area
-        //     if (!newElementInfo || newElementInfo.element !== element) {
-        //         // Determine if it was fire button or direction
-        //         const isFireButton = element.matches(this.options.fireButtonSelector);
-        //         const direction = isFireButton ? 'fire' : element.classList[1];
-
-        //         if (isFireButton) {
-        //             this.trigger('fire-up', playerId, direction);
-        //         } else {
-        //             this.trigger('arrow-up', playerId, direction);
-        //         }
-
-        //         // Update to new element if it exists and is in the same player area
-        //         if (newElementInfo && newElementInfo.playerId === playerId) {
-        //             activePointer.element = newElementInfo.element;
-
-        //             const isNewFireButton = newElementInfo.element.matches(this.options.fireButtonSelector);
-        //             const newDirection = isNewFireButton ? 'fire' : newElementInfo.element.classList[1];
-
-        //             if (isNewFireButton) {
-        //                 this.trigger('fire-down', playerId, newDirection);
-        //             } else {
-        //                 this.trigger('arrow-down', playerId, newDirection);
-        //             }
-        //         } else {
-        //             // Moved outside of any button or player area
-        //             this.playerTouches[playerId]--;
-        //             delete this.activePointers[pointerId];
-        //         }
-        //     }
-        // }
     }
 
     pointerEnd(pointerId) {
