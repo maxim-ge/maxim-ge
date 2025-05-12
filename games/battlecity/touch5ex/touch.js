@@ -14,6 +14,7 @@ class TouchController {
         // State tracking
         this.activePointers = {};
         this.playerTouches = {};
+        this.playerFires = {};
 
         // Callbacks storage
         this.callbacks = {
@@ -150,9 +151,9 @@ class TouchController {
             direction: null
         };
 
-        if (this.playerTouches[playerId] > 0 && !this.fire) {
+        if (this.playerTouches[playerId] > 0 && !this.playerFires[playerId]) {
             activePointer.direction = 'fire';
-            this.fire = true;
+            this.playerFires[playerId] = true;
             this.trigger('fire-down', playerId, activePointer.direction);
         }
 
@@ -165,18 +166,18 @@ class TouchController {
 
         const activePointer = this.activePointers[pointerId];
         if (!activePointer) {
-            return
+            return;
         }
 
-        if (activePointer.direction == 'fire') {
+        if (activePointer.direction === 'fire') {
             this.removePointer(activePointer);
-            return
+            return;
         }
 
         const playerId = this.playerIdFromPointer(x, y);
 
         // PlayerId changed
-        if (activePointer.direction && playerId != activePointer.playerId) {
+        if (activePointer.direction && playerId !== activePointer.playerId) {
             this.removePointer(activePointer);
             return;
         }
@@ -200,9 +201,9 @@ class TouchController {
     }
 
     removePointer(activePointer) {
-        if (activePointer.direction == 'fire') {
+        if (activePointer.direction === 'fire') {
             this.trigger('fire-up', activePointer.playerId, activePointer.direction);
-            this.fire = false;
+            this.playerFires[activePointer.playerId] = false;
         } else if (activePointer.direction) {
             this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
         }
