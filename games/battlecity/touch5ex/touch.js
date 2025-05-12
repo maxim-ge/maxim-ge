@@ -151,19 +151,18 @@ class TouchController {
             direction: null
         };
 
-        if (this.playerTouches[playerId] > 0 && !this.playerFires[playerId]) {
+        this.activePointers[pointerId] = activePointer;
+        this.playerTouches[playerId]++;
+
+        if (this.playerTouches[playerId] > 1 && !this.playerFires[playerId]) {
             activePointer.direction = 'fire';
             this.playerFires[playerId] = true;
             this.trigger('fire-down', playerId, activePointer.direction);
         }
 
-        this.activePointers[pointerId] = activePointer;
-        this.playerTouches[playerId]++;
-
     }
 
     pointerMove(pointerId, x, y) {
-
         const activePointer = this.activePointers[pointerId];
         if (!activePointer) {
             return;
@@ -193,6 +192,7 @@ class TouchController {
     }
 
     pointerEnd(pointerId) {
+        console.log(`Pointer ${pointerId} ended`);
         const activePointer = this.activePointers[pointerId];
         if (!activePointer) {
             return;
@@ -201,16 +201,15 @@ class TouchController {
     }
 
     removePointer(activePointer) {
+        this.playerTouches[activePointer.playerId]--;
+        delete this.activePointers[activePointer.pointerId];
         if (activePointer.direction === 'fire') {
             this.trigger('fire-up', activePointer.playerId, activePointer.direction);
             this.playerFires[activePointer.playerId] = false;
         } else if (activePointer.direction) {
             this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
         }
-        this.playerTouches[activePointer.playerId]--;
-        delete this.activePointers[activePointer.pointerId];
     }
-
 
     // =========== ELEMENT DETECTION FUNCTIONS ===========
 
