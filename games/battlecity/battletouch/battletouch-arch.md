@@ -30,7 +30,11 @@ The game consists of these main building blocks:
 
 #### Input Handling
 
-- `setupTouchControls()` - Mobile touch events
+- `setupTouchControls()` - Initializes and integrates TouchController for mobile touch events
+  - Uses event delegation for efficient touch handling
+  - Handles multi-touch for movement and firing simultaneously
+  - Maps touch areas to player controls with appropriate callbacks
+  - Provides fallback for mouse and keyboard input
 - `setupMouseControls()` - Desktop mouse events
 - `setupKeyboardControls()` - Keyboard events
 

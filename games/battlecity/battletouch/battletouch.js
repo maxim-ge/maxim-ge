@@ -243,35 +243,54 @@ function init() {
     window.addEventListener('resize', resizeCanvas);
     setupTouchControls();
 
-    // Menu buttons
-    singlePlayerBtn.addEventListener('click', () => {
+    // Menu buttons with both click and touchend events
+    const addMenuButtonListeners = (buttonId, action) => {
+        const button = document.getElementById(buttonId);
+        const handleAction = (e) => {
+            e.preventDefault(); // Prevent default behavior
+            action();
+            // Remove focus to prevent double-tap issues on iOS
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+        };
+
+        button.addEventListener('click', handleAction);
+        button.addEventListener('touchend', handleAction);
+    };
+
+    addMenuButtonListeners('single-player', () => {
         startGame('single');
         gameContainer.focus();
     });
 
-    cooperativeBtn.addEventListener('click', () => {
+    addMenuButtonListeners('cooperative', () => {
         startGame('coop');
         gameContainer.focus();
     });
 
-    combatBtn.addEventListener('click', () => {
+    addMenuButtonListeners('combat', () => {
         startGame('combat');
         gameContainer.focus();
     });
 
     // Restart and main menu buttons
-    restartBtn.addEventListener('click', () => {
+    addMenuButtonListeners('restart', () => {
         gameOverScreen.style.display = 'none';
         startGame(game.mode);
     });
 
-    mainMenuBtn.addEventListener('click', () => {
+    addMenuButtonListeners('main-menu', () => {
         gameOverScreen.style.display = 'none';
         menu.style.display = 'flex';
     });
 
     // Pause button
     pauseBtn.addEventListener('click', togglePause);
+    pauseBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        togglePause();
+    });
 
     // Ensure the game container has focus for keyboard controls
     const gameContainer = document.getElementById('game-container');
@@ -280,6 +299,20 @@ function init() {
     gameContainer.addEventListener('click', function () {
         this.focus();
     });
+
+    // Add device debug info for troubleshooting
+    if (window.innerWidth < 768) {  // Only on mobile devices
+        const deviceInfo = document.createElement('div');
+        deviceInfo.id = 'device-info';
+        deviceInfo.style.position = 'absolute';
+        deviceInfo.style.bottom = '10px';
+        deviceInfo.style.left = '10px';
+        deviceInfo.style.color = 'white';
+        deviceInfo.style.fontSize = '10px';
+        deviceInfo.style.zIndex = '30';
+        deviceInfo.textContent = `Screen: ${window.innerWidth}x${window.innerHeight}, ${window.devicePixelRatio}x`;
+        document.body.appendChild(deviceInfo);
+    }
 }
 
 // Mouse controls are now handled by the TouchController
