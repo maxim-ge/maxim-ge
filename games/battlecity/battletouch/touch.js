@@ -198,13 +198,20 @@ class TouchController {
             return;
         }
 
-        const direction = this.getDirection(activePointer.x, activePointer.y, x, y);
-        if (activePointer.direction && activePointer.direction != direction) {
-            this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
-        }
-        activePointer.direction = direction;
-        this.trigger('arrow-down', activePointer.playerId, direction);
+        const now = Date.now();
+        if (!activePointer.then || now - activePointer.then > 50) {
 
+            const direction = this.getDirection(activePointer.x, activePointer.y, x, y);
+            if (activePointer.direction && activePointer.direction != direction) {
+                this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
+            }
+
+            activePointer.direction = direction;
+            activePointer.then = now;
+            activePointer.x = x;
+            activePointer.y = y;
+            this.trigger('arrow-down', activePointer.playerId, direction);
+        }
         return;
     }
 
