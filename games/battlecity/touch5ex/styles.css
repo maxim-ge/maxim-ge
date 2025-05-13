@@ -1,0 +1,151 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    touch-action: none;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+.controls-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    width: 100%;
+    height: 100vh;
+    background-color: #eee;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border: 2px solid #333;
+    position: relative;
+}
+
+.player1 {
+    background-color: rgba(255, 99, 71, 0.3);
+}
+
+.player2 {
+    background-color: rgba(65, 105, 225, 0.3);
+}
+
+.player3 {
+    background-color: rgba(50, 205, 50, 0.3);
+}
+
+.player4 {
+    background-color: rgba(255, 215, 0, 0.3);
+}
+
+.player-label {
+    font-weight: bold;
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.d-pad {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+}
+
+.d-pad-button {
+    position: absolute;
+    background-color: #ddd;
+    border: 2px solid #333;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    user-select: none;
+}
+
+.up {
+    top: 0;
+    left: 50px;
+    border-radius: 8px 8px 0 0;
+}
+
+.right {
+    top: 50px;
+    left: 100px;
+    border-radius: 0 8px 8px 0;
+}
+
+.down {
+    top: 100px;
+    left: 50px;
+    border-radius: 0 0 8px 8px;
+}
+
+.left {
+    top: 50px;
+    left: 0px;
+    border-radius: 8px 0 0 8px;
+}
+
+.fire-button {
+    width: 80px;
+    height: 80px;
+    background-color: #ff6347;
+    border: 2px solid #333;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    user-select: none;
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+}
+
+.active {
+    background-color: #999;
+    transform: scale(0.95);
+}
+
+.status {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 12px;
+}
+
+.control-status {
+    margin: 10px auto;
+    width: 200px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #333;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+    background-color: #ccc;
+}
+
+.status-active {
+    background-color: #2ecc71;
+} 
