@@ -185,16 +185,15 @@ class TouchController {
             return;
         }
 
-        if (activePointer.direction === 'fire') {
-            this.removePointer(activePointer);
-            return;
-        }
-
         const playerId = this.playerIdFromPointer(x, y);
 
         // PlayerId changed
         if (activePointer.direction && playerId !== activePointer.playerId) {
             this.removePointer(activePointer);
+            return;
+        }
+
+        if (activePointer.direction === 'fire') {
             return;
         }
 
