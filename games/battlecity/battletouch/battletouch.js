@@ -7,6 +7,11 @@ const TANK_SPEED = 2;
 const BULLET_SPEED = 4;
 const POWERUP_TYPES = ['shield', 'extraLife', 'rapidFire', 'bombAll'];
 const POWERUP_DURATION = 10000; // 10 seconds
+
+const RATE_MULTIPLIER = 0.933;
+const RATE_CHANGE_INTERVAL = 10 * 1000; // 10 seconds
+const BASE_ENEMY_SPAWN_RATE = 6000;
+
 const MAPS = [
     // Three different map layouts
     [
@@ -125,35 +130,53 @@ const game = {
     powerups: [],
     enemySpawnPoints: [], // Add this to store calculated spawn points
     commonLives: 3, // Common lives pool for cooperative modes
-    player1: {
-        score: 0,
-        direction: 'up',
-        firing: false,
-        moving: null,
-        x: 0,
-        y: 0,
-        shield: false,
-        rapidFire: false,
-        fireRate: 500, // milliseconds between shots
-        lastFired: 0,
-        color: '#f1c40f' // Yellow
-    },
-    player2: {
-        score: 0,
-        direction: 'up',
-        firing: false,
-        moving: null,
-        x: 0,
-        y: 0,
-        shield: false,
-        rapidFire: false,
-        fireRate: 500,
-        lastFired: 0,
-        color: '#2ecc71' // Green
-    },
+    players: [
+        {
+            id: 1,
+            score: 0,
+            direction: 'up',
+            firing: false,
+            moving: null,
+            x: 0,
+            y: 0,
+            shield: false,
+            rapidFire: false,
+            fireRate: 500, // milliseconds between shots
+            lastFired: 0,
+            color: '#f1c40f' // Yellow
+        },
+        {
+            id: 2,
+            score: 0,
+            direction: 'up',
+            firing: false,
+            moving: null,
+            x: 0,
+            y: 0,
+            shield: false,
+            rapidFire: false,
+            fireRate: 500,
+            lastFired: 0,
+            color: '#2ecc71' // Green
+        },
+        {
+            id: 3,
+            score: 0,
+            direction: 'up',
+            firing: false,
+            moving: null,
+            x: 0,
+            y: 0,
+            shield: false,
+            rapidFire: false,
+            fireRate: 500,
+            lastFired: 0,
+            color: '#3498db' // Blue
+        }
+    ],
     enemies: [],
-    maxEnemies: 5,
-    enemySpawnRate: 3000, // 3 seconds
+    maxEnemies: 50,
+    enemySpawnRate: 6000,
     lastEnemySpawn: 0
 };
 
@@ -172,24 +195,37 @@ const mainMenuBtn = document.getElementById('main-menu');
 const pauseBtn = document.getElementById('pause-button');
 const player1ScoreDisplay = document.getElementById('player1-score');
 const player2ScoreDisplay = document.getElementById('player2-score');
+const player3ScoreDisplay = document.getElementById('player3-score');
 const livesDisplay = document.getElementById('lives');
 
 // Control states
 const controls = {
-    player1: {
-        up: false,
-        right: false,
-        down: false,
-        left: false,
-        fire: false
-    },
-    player2: {
-        up: false,
-        right: false,
-        down: false,
-        left: false,
-        fire: false
-    }
+    players: [
+        {
+            id: 1,
+            up: false,
+            right: false,
+            down: false,
+            left: false,
+            fire: false
+        },
+        {
+            id: 2,
+            up: false,
+            right: false,
+            down: false,
+            left: false,
+            fire: false
+        },
+        {
+            id: 3,
+            up: false,
+            right: false,
+            down: false,
+            left: false,
+            fire: false
+        }
+    ]
 };
 
 // Touch events for mobile controls using TouchController
@@ -201,45 +237,74 @@ function setupTouchControls() {
 
     // Register callback for arrow button pressed
     touchController.on('arrow-down', function (playerId, direction) {
+        let playerIndex;
         if (playerId === 'player1') {
-            controls.player1[direction] = true;
+            playerIndex = 0;
         } else if (playerId === 'player2') {
-            controls.player2[direction] = true;
+            playerIndex = 1;
+        } else if (playerId === 'player3') {
+            playerIndex = 2;
         }
+        controls.players[playerIndex][direction] = true;
     });
 
     // Register callback for arrow button released
     touchController.on('arrow-up', function (playerId, direction) {
+        let playerIndex;
         if (playerId === 'player1') {
-            controls.player1[direction] = false;
+            playerIndex = 0;
         } else if (playerId === 'player2') {
-            controls.player2[direction] = false;
+            playerIndex = 1;
+        } else if (playerId === 'player3') {
+            playerIndex = 2;
         }
+        controls.players[playerIndex][direction] = false;
     });
 
     // Register callback for fire button pressed
     touchController.on('fire-down', function (playerId) {
+        let playerIndex;
         if (playerId === 'player1') {
-            controls.player1.fire = true;
+            playerIndex = 0;
         } else if (playerId === 'player2') {
-            controls.player2.fire = true;
+            playerIndex = 1;
+        } else if (playerId === 'player3') {
+            playerIndex = 2;
         }
+        controls.players[playerIndex].fire = true;
     });
 
     // Register callback for fire button released
     touchController.on('fire-up', function (playerId) {
+        let playerIndex;
         if (playerId === 'player1') {
-            controls.player1.fire = false;
+            playerIndex = 0;
         } else if (playerId === 'player2') {
-            controls.player2.fire = false;
+            playerIndex = 1;
+        } else if (playerId === 'player3') {
+            playerIndex = 2;
         }
+        controls.players[playerIndex].fire = false;
     });
 }
 
 // Initialize canvas and game setup
 function init() {
+    // Initial canvas resize
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+
+    // Add resize event listener with debounce to prevent excessive recalculations
+    let resizeTimeout;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeCanvas, 100);
+    });
+
+    // Handle orientation change specifically for mobile devices
+    window.addEventListener('orientationchange', function () {
+        setTimeout(resizeCanvas, 200); // Slight delay to ensure new dimensions are available
+    });
+
     setupTouchControls();
 
     // Menu buttons with both click and touchend events
@@ -265,6 +330,11 @@ function init() {
 
     addMenuButtonListeners('cooperative', () => {
         startGame('coop');
+        gameContainer.focus();
+    });
+
+    addMenuButtonListeners('three-cooperative', () => {
+        startGame('three-coop');
         gameContainer.focus();
     });
 
@@ -300,23 +370,26 @@ function init() {
     });
 
     // Add device debug info for troubleshooting
-    if (window.innerWidth < 768) {  // Only on mobile devices
-        const deviceInfo = document.createElement('div');
-        deviceInfo.id = 'device-info';
-        deviceInfo.style.position = 'absolute';
-        deviceInfo.style.bottom = '10px';
-        deviceInfo.style.left = '10px';
-        deviceInfo.style.color = 'white';
-        deviceInfo.style.fontSize = '10px';
-        deviceInfo.style.zIndex = '30';
+    const deviceInfo = document.createElement('div');
+    deviceInfo.id = 'device-info';
+    deviceInfo.style.position = 'absolute';
+    deviceInfo.style.bottom = '10px';
+    deviceInfo.style.left = '10px';
+    deviceInfo.style.color = 'white';
+    deviceInfo.style.fontSize = '10px';
+    deviceInfo.style.zIndex = '30';
+    deviceInfo.textContent = `Screen: ${window.innerWidth}x${window.innerHeight}, ${window.devicePixelRatio}x`;
+    document.body.appendChild(deviceInfo);
+
+    // Update device info on resize
+    window.addEventListener('resize', function () {
         deviceInfo.textContent = `Screen: ${window.innerWidth}x${window.innerHeight}, ${window.devicePixelRatio}x`;
-        document.body.appendChild(deviceInfo);
-    }
+    });
 }
 
 // Mouse controls are now handled by the TouchController
 
-// Maintain aspect ratio on resize
+// Maintain aspect ratio on resize and ensure game field fits the screen
 function resizeCanvas() {
     const container = document.getElementById('game-container');
     const containerWidth = container.clientWidth;
@@ -324,22 +397,45 @@ function resizeCanvas() {
 
     let newWidth, newHeight;
 
+    newWidth = containerWidth;
+    newHeight = containerHeight;
+
+
     if (containerWidth / containerHeight > CANVAS_RATIO) {
         // Container is wider than needed
         newHeight = containerHeight;
-        newWidth = newHeight * CANVAS_RATIO;
+        newWidth = containerHeight * CANVAS_RATIO;
     } else {
         // Container is taller than needed
         newWidth = containerWidth;
-        newHeight = newWidth / CANVAS_RATIO;
+        newHeight = containerWidth / CANVAS_RATIO;
     }
 
+    // Ensure dimensions are integers to prevent rendering issues
+    newWidth = Math.floor(newWidth);
+    newHeight = Math.floor(newHeight);
+
+    // Update canvas dimensions
     canvas.width = newWidth;
     canvas.height = newHeight;
 
+    // Update canvas style dimensions to ensure it's displayed correctly
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+
     // Center the canvas
-    canvas.style.left = `${(containerWidth - newWidth) / 2}px`;
-    canvas.style.top = `${(containerHeight - newHeight) / 2}px`;
+    canvas.style.left = `${Math.floor((containerWidth - newWidth) / 2)}px`;
+    canvas.style.top = `${Math.floor((containerHeight - newHeight) / 2)}px`;
+
+    // If game is running, recreate the map to ensure it fits the new canvas size
+    if (game.running && game.currentMap !== null) {
+        // Clear blocks and recreate map
+        game.blocks = [];
+        createMap(MAPS[game.currentMap]);
+
+        // Reposition tanks and other elements if needed
+        repositionGameElements();
+    }
 }
 
 // Toggle pause state
@@ -361,12 +457,19 @@ function startGame(mode) {
     switch (mode) {
         case 'single':
             game.commonLives = 3;
+            game.enemySpawnRate = BASE_ENEMY_SPAWN_RATE;
             break;
         case 'coop':
             game.commonLives = 6;
+            game.enemySpawnRate = BASE_ENEMY_SPAWN_RATE / 1.3;
+            break;
+        case 'three-coop':
+            game.commonLives = 9;
+            game.enemySpawnRate = BASE_ENEMY_SPAWN_RATE / 1.5;
             break;
         case 'combat':
             game.commonLives = 6;
+            game.enemySpawnRate = BASE_ENEMY_SPAWN_RATE / 1.5;
             break;
     }
 
@@ -379,12 +482,13 @@ function startGame(mode) {
     game.bullets = [];
     game.powerups = [];
     game.enemies = [];
-    game.player1.score = 0;
-    game.player1.shield = false;
-    game.player1.rapidFire = false;
-    game.player2.score = 0;
-    game.player2.shield = false;
-    game.player2.rapidFire = false;
+
+    // Reset player states
+    for (let i = 0; i < game.players.length; i++) {
+        game.players[i].score = 0;
+        game.players[i].shield = false;
+        game.players[i].rapidFire = false;
+    }
 
     // Select and create random map
     const mapIndex = Math.floor(Math.random() * MAPS.length);
@@ -401,59 +505,85 @@ function startGame(mode) {
     }
 
     // Set up player(s) based on game mode
-    if (mode === 'single' || mode === 'coop') {
+    if (mode === 'single' || mode === 'coop' || mode === 'three-coop') {
         // Calculate positions based on canvas dimensions
-        game.player1.x = canvas.width / 4;
-        game.player1.y = canvas.height - TANK_SIZE * 2;
-        game.player1.direction = 'up';
+        const player1 = game.players[0];
+        player1.x = canvas.width / 4;
+        player1.y = canvas.height - TANK_SIZE * 2;
+        player1.direction = 'up';
         game.tanks.push({
             player: 1,
-            x: game.player1.x,
-            y: game.player1.y,
-            direction: game.player1.direction,
+            x: player1.x,
+            y: player1.y,
+            direction: player1.direction,
             width: TANK_SIZE,
             height: TANK_SIZE
         });
 
-        if (mode === 'coop') {
-            game.player2.x = canvas.width * 3 / 4;
-            game.player2.y = canvas.height - TANK_SIZE * 2;
-            game.player2.direction = 'up';
+        if (mode === 'coop' || mode === 'three-coop') {
+            const player2 = game.players[1];
+            player2.x = canvas.width * 3 / 4;
+            player2.y = canvas.height - TANK_SIZE * 2;
+            player2.direction = 'up';
             game.tanks.push({
                 player: 2,
-                x: game.player2.x,
-                y: game.player2.y,
-                direction: game.player2.direction,
+                x: player2.x,
+                y: player2.y,
+                direction: player2.direction,
                 width: TANK_SIZE,
                 height: TANK_SIZE
             });
             document.getElementById('player2').style.display = 'block';
             player2ScoreDisplay.style.display = 'block';
+
+            if (mode === 'three-coop') {
+                const player3 = game.players[2];
+                player3.x = canvas.width * 3 / 4;
+                player3.y = 0 + TANK_SIZE * 2;
+                player3.direction = 'down';
+                game.tanks.push({
+                    player: 3,
+                    x: player3.x,
+                    y: player3.y,
+                    direction: player3.direction,
+                    width: TANK_SIZE,
+                    height: TANK_SIZE
+                });
+                document.getElementById('player3').style.display = 'block';
+                player3ScoreDisplay.style.display = 'block';
+            } else {
+                document.getElementById('player3').style.display = 'none';
+                player3ScoreDisplay.style.display = 'none';
+            }
         } else {
             document.getElementById('player2').style.display = 'none';
             player2ScoreDisplay.style.display = 'none';
+            document.getElementById('player3').style.display = 'none';
+            player3ScoreDisplay.style.display = 'none';
         }
     } else if (mode === 'combat') {
-        game.player1.x = canvas.width / 4;
-        game.player1.y = canvas.height - TANK_SIZE * 2;
-        game.player1.direction = 'up';
+        const player1 = game.players[0];
+        player1.x = canvas.width / 4;
+        player1.y = canvas.height - TANK_SIZE * 2;
+        player1.direction = 'up';
         game.tanks.push({
             player: 1,
-            x: game.player1.x,
-            y: game.player1.y,
-            direction: game.player1.direction,
+            x: player1.x,
+            y: player1.y,
+            direction: player1.direction,
             width: TANK_SIZE,
             height: TANK_SIZE
         });
 
-        game.player2.x = canvas.width * 3 / 4;
-        game.player2.y = TANK_SIZE * 2;
-        game.player2.direction = 'down';
+        const player2 = game.players[1];
+        player2.x = canvas.width * 3 / 4;
+        player2.y = TANK_SIZE * 2;
+        player2.direction = 'down';
         game.tanks.push({
             player: 2,
-            x: game.player2.x,
-            y: game.player2.y,
-            direction: game.player2.direction,
+            x: player2.x,
+            y: player2.y,
+            direction: player2.direction,
             width: TANK_SIZE,
             height: TANK_SIZE
         });
@@ -512,8 +642,10 @@ function createMap(mapLayout) {
     const mapWidth = mapLayout[0].length;
     const mapHeight = mapLayout.length;
 
-    const blockWidth = canvas.width / mapWidth;
-    const blockHeight = canvas.height / mapHeight;
+    // Calculate block dimensions based on canvas size
+    // Use Math.floor to ensure integer values for better rendering
+    const blockWidth = Math.floor(canvas.width / mapWidth);
+    const blockHeight = Math.floor(canvas.height / mapHeight);
 
     for (let y = 0; y < mapHeight; y++) {
         for (let x = 0; x < mapWidth; x++) {
@@ -547,13 +679,21 @@ function gameLoop(timestamp) {
     updateBullets();
     updatePowerups(timestamp);
 
-    // Spawn new enemies in single player and coop modes
-    if ((game.mode === 'single' || game.mode === 'coop') &&
+    // Spawn new enemies in single player and cooperative modes
+    if ((game.mode === 'single' || game.mode === 'coop' || game.mode === 'three-coop') &&
+
         timestamp - game.lastEnemySpawn > game.enemySpawnRate &&
         game.enemies.length < game.maxEnemies) {
         spawnEnemy();
         game.lastEnemySpawn = timestamp;
     }
+
+    if (!game.lastRateChange || timestamp - game.lastRateChange > RATE_CHANGE_INTERVAL) {
+        console.log(`New enemy spawn rate: ${game.enemySpawnRate}`);
+        game.enemySpawnRate = game.enemySpawnRate * RATE_MULTIPLIER;
+        game.lastRateChange = timestamp;
+    }
+
 
     // Draw everything
     drawMap();
@@ -570,35 +710,32 @@ function gameLoop(timestamp) {
 
 // Update player tanks based on controls
 function updatePlayers(timestamp) {
-    // Player 1
-    if (game.tanks.find(tank => tank.player === 1)) {
-        updatePlayerDirection(1);
-        movePlayerTank(1);
+    // Update each player in the array
+    for (let i = 0; i < game.players.length; i++) {
+        const playerNum = i + 1;
 
-        if (controls.player1.fire &&
-            timestamp - game.player1.lastFired > (game.player1.rapidFire ? game.player1.fireRate / 2 : game.player1.fireRate)) {
-            fireBullet(1);
-            game.player1.lastFired = timestamp;
-        }
-    }
+        // Check if this player's tank is in the game
+        if (game.tanks.find(tank => tank.player === playerNum)) {
+            updatePlayerDirection(playerNum);
+            movePlayerTank(playerNum);
 
-    // Player 2 (if in game)
-    if (game.tanks.find(tank => tank.player === 2)) {
-        updatePlayerDirection(2);
-        movePlayerTank(2);
+            const player = game.players[i];
+            const playerControls = controls.players[i];
 
-        if (controls.player2.fire &&
-            timestamp - game.player2.lastFired > (game.player2.rapidFire ? game.player2.fireRate / 2 : game.player2.fireRate)) {
-            fireBullet(2);
-            game.player2.lastFired = timestamp;
+            if (playerControls.fire &&
+                timestamp - player.lastFired > (player.rapidFire ? player.fireRate / 2 : player.fireRate)) {
+                fireBullet(playerNum);
+                player.lastFired = timestamp;
+            }
         }
     }
 }
 
 // Update player direction based on controls
 function updatePlayerDirection(playerNum) {
-    const player = playerNum === 1 ? game.player1 : game.player2;
-    const playerControls = playerNum === 1 ? controls.player1 : controls.player2;
+    const playerIndex = playerNum - 1;
+    const player = game.players[playerIndex];
+    const playerControls = controls.players[playerIndex];
 
     if (playerControls.up) {
         player.direction = 'up';
@@ -619,7 +756,8 @@ function updatePlayerDirection(playerNum) {
 
 // Move player tank based on direction
 function movePlayerTank(playerNum) {
-    const player = playerNum === 1 ? game.player1 : game.player2;
+    const playerIndex = playerNum - 1;
+    const player = game.players[playerIndex];
     if (!player.moving) return;
 
 
@@ -655,13 +793,8 @@ function movePlayerTank(playerNum) {
         tank.y = newY;
 
         // Update player position reference
-        if (playerNum === 1) {
-            game.player1.x = newX;
-            game.player1.y = newY;
-        } else {
-            game.player2.x = newX;
-            game.player2.y = newY;
-        }
+        player.x = newX;
+        player.y = newY;
 
         tank.direction = player.direction;
     } else {
@@ -775,9 +908,11 @@ function updateBullets() {
                     game.blocks.splice(j, 1);
                     // Add score for destroying a block
                     if (bullet.source === 'player1') {
-                        game.player1.score += 10;
+                        game.players[0].score += 10;
                     } else if (bullet.source === 'player2') {
-                        game.player2.score += 10;
+                        game.players[1].score += 10;
+                    } else if (bullet.source === 'player3') {
+                        game.players[2].score += 10;
                     }
                     updateScoreDisplay();
                 }
@@ -801,7 +936,8 @@ function updateBullets() {
                     game.bullets.splice(i, 1);
 
                     // If player has shield, no damage
-                    const player = tank.player === 1 ? game.player1 : game.player2;
+                    const playerIndex = tank.player - 1;
+                    const player = game.players[playerIndex];
                     if (player.shield) continue;
 
                     // Reduce lives from common pool in all modes
@@ -821,7 +957,7 @@ function updateBullets() {
             }
         }
         // Check enemy tanks if bullet from player
-        else if (bullet.source === 'player1' || bullet.source === 'player2') {
+        else if (bullet.source === 'player1' || bullet.source === 'player2' || bullet.source === 'player3') {
             for (let j = game.enemies.length - 1; j >= 0; j--) {
                 const enemy = game.enemies[j];
 
@@ -832,9 +968,11 @@ function updateBullets() {
 
                     // Add score for destroying an enemy
                     if (bullet.source === 'player1') {
-                        game.player1.score += 100;
+                        game.players[0].score += 100;
                     } else if (bullet.source === 'player2') {
-                        game.player2.score += 100;
+                        game.players[1].score += 100;
+                    } else if (bullet.source === 'player3') {
+                        game.players[2].score += 100;
                     }
 
                     updateScoreDisplay();
@@ -856,7 +994,7 @@ function updateBullets() {
                     game.bullets.splice(i, 1);
 
                     // If player has shield, no damage
-                    if (!game.player2.shield) {
+                    if (!game.players[1].shield) {
                         game.commonLives--;
                         updateScoreDisplay();
 
@@ -869,7 +1007,7 @@ function updateBullets() {
                         }
 
                         // Add score
-                        game.player1.score += 50;
+                        game.players[0].score += 50;
                         updateScoreDisplay();
                     }
                 }
@@ -879,7 +1017,7 @@ function updateBullets() {
                     game.bullets.splice(i, 1);
 
                     // If player has shield, no damage
-                    if (!game.player1.shield) {
+                    if (!game.players[0].shield) {
                         game.commonLives--;
                         updateScoreDisplay();
 
@@ -892,7 +1030,7 @@ function updateBullets() {
                         }
 
                         // Add score
-                        game.player2.score += 50;
+                        game.players[1].score += 50;
                         updateScoreDisplay();
                     }
                 }
@@ -903,21 +1041,17 @@ function updateBullets() {
 
 // Update powerups and check for expiration
 function updatePowerups(timestamp) {
-    // Check for powerup expiration
-    if (game.player1.shield && timestamp - game.player1.shieldStart > POWERUP_DURATION) {
-        game.player1.shield = false;
-    }
+    // Check for powerup expiration for all players
+    for (let i = 0; i < game.players.length; i++) {
+        const player = game.players[i];
 
-    if (game.player1.rapidFire && timestamp - game.player1.rapidFireStart > POWERUP_DURATION) {
-        game.player1.rapidFire = false;
-    }
+        if (player.shield && timestamp - player.shieldStart > POWERUP_DURATION) {
+            player.shield = false;
+        }
 
-    if (game.player2.shield && timestamp - game.player2.shieldStart > POWERUP_DURATION) {
-        game.player2.shield = false;
-    }
-
-    if (game.player2.rapidFire && timestamp - game.player2.rapidFireStart > POWERUP_DURATION) {
-        game.player2.rapidFire = false;
+        if (player.rapidFire && timestamp - player.rapidFireStart > POWERUP_DURATION) {
+            player.rapidFire = false;
+        }
     }
 
     // Remove expired powerups
@@ -934,7 +1068,8 @@ function fireBullet(playerNum) {
     const tank = game.tanks.find(t => t.player === playerNum);
     if (!tank) return;
 
-    const player = playerNum === 1 ? game.player1 : game.player2;
+    const playerIndex = playerNum - 1;
+    const player = game.players[playerIndex];
 
     let bulletX = tank.x + TANK_SIZE / 2 - BULLET_SIZE / 2;
     let bulletY = tank.y + TANK_SIZE / 2 - BULLET_SIZE / 2;
@@ -961,7 +1096,7 @@ function fireBullet(playerNum) {
         width: BULLET_SIZE,
         height: BULLET_SIZE,
         direction: player.direction,
-        source: playerNum === 1 ? 'player1' : 'player2'
+        source: `player${playerNum}`
     };
 
     game.bullets.push(bullet);
@@ -1011,7 +1146,8 @@ function checkPowerupCollection(tank) {
 
         if (checkRectCollision(tank, powerup)) {
             // Collected powerup
-            const player = tank.player === 1 ? game.player1 : game.player2;
+            const playerIndex = tank.player - 1;
+            const player = game.players[playerIndex];
 
             switch (powerup.type) {
                 case 'shield':
@@ -1034,11 +1170,8 @@ function checkPowerupCollection(tank) {
                         const scorePerEnemy = 50;
                         const totalScore = game.enemies.length * scorePerEnemy;
 
-                        if (tank.player === 1) {
-                            game.player1.score += totalScore;
-                        } else {
-                            game.player2.score += totalScore;
-                        }
+                        // Add score to the player who collected the powerup
+                        player.score += totalScore;
 
                         game.enemies = [];
                         updateScoreDisplay();
@@ -1057,17 +1190,16 @@ function respawnPlayerTank(playerNum) {
     const index = game.tanks.findIndex(tank => tank.player === playerNum);
     if (index !== -1) {
         const tank = game.tanks[index];
+        const playerIndex = playerNum - 1;
+        const player = game.players[playerIndex];
 
         if (playerNum === 1) {
             tank.x = canvas.width / 4;
             tank.y = canvas.height - TANK_SIZE * 2;
             tank.direction = 'up';
             moveToClosestAvailablePositionWithoutCollision(tank);
-            game.player1.x = tank.x;
-            game.player1.y = tank.y;
-            game.player1.direction = tank.direction;
-        } else {
-            if (game.mode === 'coop') {
+        } else if (playerNum === 2) {
+            if (game.mode === 'coop' || game.mode === 'three-coop') {
                 tank.x = canvas.width * 3 / 4;
                 tank.y = canvas.height - TANK_SIZE * 2;
                 tank.direction = 'up';
@@ -1077,18 +1209,26 @@ function respawnPlayerTank(playerNum) {
                 tank.direction = 'down';
             }
             moveToClosestAvailablePositionWithoutCollision(tank);
-            game.player2.x = tank.x;
-            game.player2.y = tank.y;
-            game.player2.direction = tank.direction;
+        } else if (playerNum === 3 && game.mode === 'three-coop') {
+            tank.x = canvas.width * 3 / 4;
+            player3.y = 0 + TANK_SIZE * 2;
+            tank.direction = 'down';
+            moveToClosestAvailablePositionWithoutCollision(tank);
         }
+
+        // Update player position reference
+        player.x = tank.x;
+        player.y = tank.y;
+        player.direction = tank.direction;
     }
 }
 
 // Check for collisions
 function checkCollision(object, ignoreObject = null) {
     // Check collision with canvas boundaries
-    if (object.x < 0 || object.x + object.width > canvas.width ||
-        object.y < 0 || object.y + object.height > canvas.height) {
+    // Add a small buffer (1 pixel) to prevent objects from being exactly at the edge
+    if (object.x < 1 || object.x + object.width > canvas.width - 1 ||
+        object.y < 1 || object.y + object.height > canvas.height - 1) {
 
         return true;
     }
@@ -1158,13 +1298,16 @@ function endGame(message) {
 
     // Update game over screen
     if (game.mode === 'single') {
-        finalScoreDisplay.textContent = `Final Score: ${game.player1.score}`;
+        finalScoreDisplay.textContent = `Final Score: ${game.players[0].score}`;
         winnerDisplay.textContent = '';
     } else if (game.mode === 'coop') {
-        finalScoreDisplay.textContent = `Player 1: ${game.player1.score} - Player 2: ${game.player2.score}`;
+        finalScoreDisplay.textContent = `Player 1: ${game.players[0].score} - Player 2: ${game.players[1].score}`;
+        winnerDisplay.textContent = '';
+    } else if (game.mode === 'three-coop') {
+        finalScoreDisplay.textContent = `P1: ${game.players[0].score} - P2: ${game.players[1].score} - P3: ${game.players[2].score}`;
         winnerDisplay.textContent = '';
     } else { // Combat mode
-        finalScoreDisplay.textContent = `Player 1: ${game.player1.score} - Player 2: ${game.player2.score}`;
+        finalScoreDisplay.textContent = `Player 1: ${game.players[0].score} - Player 2: ${game.players[1].score}`;
         winnerDisplay.textContent = message;
     }
 
@@ -1173,8 +1316,9 @@ function endGame(message) {
 
 // Update score display
 function updateScoreDisplay() {
-    player1ScoreDisplay.textContent = `P1: ${game.player1.score}`;
-    player2ScoreDisplay.textContent = `P2: ${game.player2.score}`;
+    player1ScoreDisplay.textContent = `P1: ${game.players[0].score}`;
+    player2ScoreDisplay.textContent = `P2: ${game.players[1].score}`;
+    player3ScoreDisplay.textContent = `P3: ${game.players[2].score}`;
 
     // Display common lives pool for all modes
     livesDisplay.textContent = `Lives: ${game.commonLives}`;
@@ -1291,7 +1435,8 @@ function drawMap() {
 function drawTanks() {
     // Draw player tanks
     for (const tank of game.tanks) {
-        const player = tank.player === 1 ? game.player1 : game.player2;
+        const playerIndex = tank.player - 1;
+        const player = game.players[playerIndex];
 
         // Base tank body
         ctx.fillStyle = player.color;
@@ -1323,7 +1468,7 @@ function drawTanks() {
         }
 
         // Draw shield if active
-        if ((tank.player === 1 && game.player1.shield) || (tank.player === 2 && game.player2.shield)) {
+        if (player.shield) {
             ctx.strokeStyle = '#3498db';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -1474,24 +1619,91 @@ function drawPowerups() {
 // Initialize the game
 init();
 
-// Calculate valid enemy spawn points
+// Reposition game elements after canvas resize
+function repositionGameElements() {
+    // Reposition player tanks
+    for (const tank of game.tanks) {
+        const playerIndex = tank.player - 1;
+        const player = game.players[playerIndex];
+
+        // Reposition based on player number and game mode
+        if (tank.player === 1) {
+            tank.x = canvas.width / 4;
+            tank.y = canvas.height - TANK_SIZE * 2;
+            tank.direction = 'up';
+        } else if (tank.player === 2) {
+            if (game.mode === 'coop' || game.mode === 'three-coop') {
+                tank.x = canvas.width * 3 / 4;
+                tank.y = canvas.height - TANK_SIZE * 2;
+                tank.direction = 'up';
+            } else { // Combat mode
+                tank.x = canvas.width * 3 / 4;
+                tank.y = TANK_SIZE * 2;
+                tank.direction = 'down';
+            }
+        } else if (tank.player === 3 && game.mode === 'three-coop') {
+            tank.x = canvas.width * 3 / 4;
+            tank.y = TANK_SIZE * 2;
+            tank.direction = 'down';
+        }
+
+        // Update player position reference
+        player.x = tank.x;
+        player.y = tank.y;
+        player.direction = tank.direction;
+
+        // Ensure tank is not colliding with anything
+        moveToClosestAvailablePositionWithoutCollision(tank);
+    }
+
+    // Recalculate enemy spawn points
+    calculateEnemySpawnPoints();
+
+    // Reposition enemies if needed
+    for (const enemy of game.enemies) {
+        moveToClosestAvailablePositionWithoutCollision(enemy);
+    }
+
+    // Adjust bullets to ensure they're within bounds
+    for (let i = game.bullets.length - 1; i >= 0; i--) {
+        const bullet = game.bullets[i];
+        if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+            game.bullets.splice(i, 1);
+        }
+    }
+
+    // Adjust powerups to ensure they're within bounds
+    for (let i = game.powerups.length - 1; i >= 0; i--) {
+        const powerup = game.powerups[i];
+        if (powerup.x < 0 || powerup.x > canvas.width || powerup.y < 0 || powerup.y > canvas.height) {
+            game.powerups.splice(i, 1);
+        }
+    }
+}
+
+// Create randomly distributed spawn points, ensuring that there is no collision
 function calculateEnemySpawnPoints() {
     game.enemySpawnPoints = [];
 
-    // Try several positions across the top of the map
-    const numPoints = 5;
-    for (let i = 1; i <= numPoints; i++) {
-        const x = (canvas.width * i) / (numPoints + 1);
+    // Try to find random positions across the map
+    const numAttempts = 15; // More attempts to ensure we get enough valid ones
+    for (let i = 0; i < numAttempts; i++) {
+        // Random position with margin from edges
+        const margin = TANK_SIZE * 2;
+        const x = margin + Math.random() * (canvas.width / 3 * 2 - margin * 2);
+        const y = margin + Math.random() * (canvas.height / 3);
+
         const potentialPoint = {
             x: x,
-            y: TANK_SIZE,
+            y: y,
             width: TANK_SIZE,
             height: TANK_SIZE
         };
 
-        // If no collision, add to valid spawn points
         if (!checkCollision(potentialPoint)) {
-            game.enemySpawnPoints.push({ x, y: TANK_SIZE });
+            game.enemySpawnPoints.push({ x, y });
+            // Stop once we have 5 valid points
+            if (game.enemySpawnPoints.length >= 5) break;
         }
     }
 
@@ -1502,5 +1714,8 @@ function calculateEnemySpawnPoints() {
             { x: canvas.width / 2, y: TANK_SIZE },
             { x: canvas.width * 3 / 4, y: TANK_SIZE }
         ];
+        console.log("Default enemy spawn points used:", game.enemySpawnPoints);
+    } else {
+        console.log("Found game.enemySpawnPoints:", game.enemySpawnPoints);
     }
 }
