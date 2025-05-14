@@ -185,11 +185,6 @@ class TouchController {
             return;
         }
 
-        if (activePointer.direction === 'fire') {
-            this.removePointer(activePointer);
-            return;
-        }
-
         const playerId = this.playerIdFromPointer(x, y);
 
         // PlayerId changed
@@ -198,13 +193,21 @@ class TouchController {
             return;
         }
 
-        const direction = this.getDirection(activePointer.x, activePointer.y, x, y);
-        if (activePointer.direction && activePointer.direction != direction) {
-            this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
+        if (activePointer.direction === 'fire') {
+            return;
         }
-        activePointer.direction = direction;
-        this.trigger('arrow-down', activePointer.playerId, direction);
 
+        if (Math.abs(activePointer.x - x) > TANK_SIZE / 2 || Math.abs(activePointer.y - y) > TANK_SIZE / 2) {
+            const direction = this.getDirection(activePointer.x, activePointer.y, x, y);
+            if (activePointer.direction && activePointer.direction != direction) {
+                this.trigger('arrow-up', activePointer.playerId, activePointer.direction);
+            }
+
+            activePointer.direction = direction;
+            activePointer.x = x;
+            activePointer.y = y;
+            this.trigger('arrow-down', activePointer.playerId, direction);
+        }
         return;
     }
 

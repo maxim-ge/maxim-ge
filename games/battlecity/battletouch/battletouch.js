@@ -124,9 +124,9 @@ const game = {
     bullets: [],
     powerups: [],
     enemySpawnPoints: [], // Add this to store calculated spawn points
+    commonLives: 3, // Common lives pool for cooperative modes
     player1: {
         score: 0,
-        lives: 3,
         direction: 'up',
         firing: false,
         moving: null,
@@ -140,7 +140,6 @@ const game = {
     },
     player2: {
         score: 0,
-        lives: 3,
         direction: 'up',
         firing: false,
         moving: null,
@@ -358,6 +357,19 @@ function togglePause() {
 // Start the game with selected mode
 function startGame(mode) {
     game.mode = mode;
+
+    switch (mode) {
+        case 'single':
+            game.commonLives = 3;
+            break;
+        case 'coop':
+            game.commonLives = 6;
+            break;
+        case 'combat':
+            game.commonLives = 6;
+            break;
+    }
+
     game.running = true;
     game.paused = false;
 
@@ -368,11 +380,9 @@ function startGame(mode) {
     game.powerups = [];
     game.enemies = [];
     game.player1.score = 0;
-    game.player1.lives = 3;
     game.player1.shield = false;
     game.player1.rapidFire = false;
     game.player2.score = 0;
-    game.player2.lives = 3;
     game.player2.shield = false;
     game.player2.rapidFire = false;
 
@@ -533,7 +543,7 @@ function gameLoop(timestamp) {
 
     // Update game state
     updatePlayers(timestamp);
-    updateEnemies(timestamp);
+    updateEnemies();
     updateBullets();
     updatePowerups(timestamp);
 
@@ -661,7 +671,7 @@ function movePlayerTank(playerNum) {
 }
 
 // Update enemy tanks
-function updateEnemies(timestamp) {
+function updateEnemies() {
     // Skip in combat mode
     if (game.mode === 'combat') return;
 
@@ -794,12 +804,12 @@ function updateBullets() {
                     const player = tank.player === 1 ? game.player1 : game.player2;
                     if (player.shield) continue;
 
-                    // Otherwise, reduce lives
-                    player.lives--;
+                    // Reduce lives from common pool in all modes
+                    game.commonLives--;
                     updateScoreDisplay();
 
-                    // If player out of lives, remove tank
-                    if (player.lives <= 0) {
+                    // If out of lives, remove tank
+                    if (game.commonLives <= 0) {
                         game.tanks.splice(j, 1);
                     } else {
                         // Respawn tank
@@ -847,11 +857,11 @@ function updateBullets() {
 
                     // If player has shield, no damage
                     if (!game.player2.shield) {
-                        game.player2.lives--;
+                        game.commonLives--;
                         updateScoreDisplay();
 
-                        // If player out of lives, remove tank
-                        if (game.player2.lives <= 0) {
+                        // If out of lives, remove tank
+                        if (game.commonLives <= 0) {
                             game.tanks = game.tanks.filter(tank => tank.player !== 2);
                         } else {
                             // Respawn tank
@@ -870,11 +880,11 @@ function updateBullets() {
 
                     // If player has shield, no damage
                     if (!game.player1.shield) {
-                        game.player1.lives--;
+                        game.commonLives--;
                         updateScoreDisplay();
 
-                        // If player out of lives, remove tank
-                        if (game.player1.lives <= 0) {
+                        // If out of lives, remove tank
+                        if (game.commonLives <= 0) {
                             game.tanks = game.tanks.filter(tank => tank.player !== 1);
                         } else {
                             // Respawn tank
@@ -1009,7 +1019,8 @@ function checkPowerupCollection(tank) {
                     player.shieldStart = performance.now();
                     break;
                 case 'extraLife':
-                    player.lives++;
+                    // Add to common lives pool in all modes
+                    game.commonLives++;
                     updateScoreDisplay();
                     break;
                 case 'rapidFire':
@@ -1019,13 +1030,16 @@ function checkPowerupCollection(tank) {
                 case 'bombAll':
                     // Destroy all enemies on screen
                     if (game.mode !== 'combat') {
-                        game.enemies.forEach(enemy => {
-                            if (tank.player === 1) {
-                                game.player1.score += 50;
-                            } else {
-                                game.player2.score += 50;
-                            }
-                        });
+                        // Add score for each enemy destroyed
+                        const scorePerEnemy = 50;
+                        const totalScore = game.enemies.length * scorePerEnemy;
+
+                        if (tank.player === 1) {
+                            game.player1.score += totalScore;
+                        } else {
+                            game.player2.score += totalScore;
+                        }
+
                         game.enemies = [];
                         updateScoreDisplay();
                     }
@@ -1120,24 +1134,20 @@ function checkRectCollision(rect1, rect2) {
 
 // Check for game over conditions
 function checkGameOver() {
-    // For single player mode
-    if (game.mode === 'single' && !game.tanks.find(tank => tank.player === 1)) {
-        endGame("Game Over");
-    }
-
-    // For cooperative mode
-    if (game.mode === 'coop' &&
-        !game.tanks.find(tank => tank.player === 1) &&
-        !game.tanks.find(tank => tank.player === 2)) {
-        endGame("Game Over");
-    }
-
-    // For combat mode
-    if (game.mode === 'combat') {
-        if (!game.tanks.find(tank => tank.player === 1)) {
-            endGame("Player 2 Wins!");
-        } else if (!game.tanks.find(tank => tank.player === 2)) {
-            endGame("Player 1 Wins!");
+    // Check common lives pool for all modes
+    if (game.commonLives <= 0) {
+        if (game.mode === 'combat') {
+            // In combat mode, determine winner based on remaining tanks
+            if (!game.tanks.find(tank => tank.player === 1)) {
+                endGame("Player 2 Wins!");
+            } else if (!game.tanks.find(tank => tank.player === 2)) {
+                endGame("Player 1 Wins!");
+            } else {
+                endGame("Game Over");
+            }
+        } else {
+            // In single or coop mode
+            endGame("Game Over");
         }
     }
 }
@@ -1165,9 +1175,9 @@ function endGame(message) {
 function updateScoreDisplay() {
     player1ScoreDisplay.textContent = `P1: ${game.player1.score}`;
     player2ScoreDisplay.textContent = `P2: ${game.player2.score}`;
-    livesDisplay.textContent = `Lives: ${game.mode === 'combat' ?
-        game.player1.lives + '/' + game.player2.lives :
-        (game.mode === 'coop' ? Math.max(game.player1.lives, game.player2.lives) : game.player1.lives)}`;
+
+    // Display common lives pool for all modes
+    livesDisplay.textContent = `Lives: ${game.commonLives}`;
 }
 
 // Draw functions
