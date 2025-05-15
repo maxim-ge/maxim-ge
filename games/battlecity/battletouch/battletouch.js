@@ -1211,7 +1211,7 @@ function respawnPlayerTank(playerNum) {
             moveToClosestAvailablePositionWithoutCollision(tank);
         } else if (playerNum === 3 && game.mode === 'three-coop') {
             tank.x = canvas.width * 3 / 4;
-            player3.y = 0 + TANK_SIZE * 2;
+            tank.y = 0 + TANK_SIZE * 2;
             tank.direction = 'down';
             moveToClosestAvailablePositionWithoutCollision(tank);
         }
