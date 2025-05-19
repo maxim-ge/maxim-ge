@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Hockey</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="hud">
+            <div id="score-display">0 - 0</div>
+            <div id="round-info">Round 1</div>
+            <div id="message-overlay"></div>
+        </div>
+
+        <div id="settings-panel">
+            <h2>Game Settings</h2>
+            <div class="setting">
+                <label for="ai-difficulty">AI Difficulty: <span id="difficulty-value">5</span></label>
+                <input type="range" id="ai-difficulty" min="1" max="10" value="5">
+            </div>
+            <div class="setting">
+                <label for="sound-volume">Sound Volume: <span id="volume-value">50</span>%</label>
+                <input type="range" id="sound-volume" min="0" max="100" value="50">
+            </div>
+            <div class="setting">
+                <label>Game Mode:</label>
+                <div class="radio-group">
+                    <input type="radio" id="single-player" name="game-mode" value="single" checked>
+                    <label for="single-player">Single Player</label>
+                    <input type="radio" id="two-player" name="game-mode" value="two">
+                    <label for="two-player">Two Players</label>
+                </div>
+            </div>
+            <button id="start-game" onclick="Game.startGame()">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Standalone game script (no modules) -->
+    <script src="game.js"></script>
+
+    <!-- Initialize the game when the page loads -->
+    <script>
+        // Start the game when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Initializing game");
+            Game.init();
+            console.log("Game initialized");
+        });
+    </script>
+</body>
+
+</html>
