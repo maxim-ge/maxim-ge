@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Snake Evolution</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-wrapper" id="gameWrapper">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+            <div class="ui-overlay">
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>Score:</span>
+                        <span id="score">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Level:</span>
+                        <span id="level">1</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Length:</span>
+                        <span id="length">1</span>
+                    </div>
+                </div>
+
+                <div class="abilities-panel">
+                    <div class="ability-item" id="speedBoost">
+                        <span>Speed:</span>
+                        <span>0s</span>
+                    </div>
+                    <div class="ability-item" id="scoreMultiplier">
+                        <span>x2 Score:</span>
+                        <span>0s</span>
+                    </div>
+                    <div class="ability-item" id="phaseMode">
+                        <span>Phase:</span>
+                        <span>0s</span>
+                    </div>
+                    <div class="ability-item" id="slowTime">
+                        <span>Slow:</span>
+                        <span>0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Screen -->
+            <div class="screen" id="startScreen">
+                <h1 class="title">AI SNAKE EVOLUTION</h1>
+                <p class="subtitle">Experience the future of classic gaming</p>
+
+                <div class="food-legend">
+                    <div class="food-item">
+                        <div class="food-icon red"></div>
+                        <span>Red: +1 length, +10 points</span>
+                    </div>
+                    <div class="food-item">
+                        <div class="food-icon blue"></div>
+                        <span>Blue: Speed boost (5s)</span>
+                    </div>
+                    <div class="food-item">
+                        <div class="food-icon gold"></div>
+                        <span>Gold: x2 score multiplier (10s)</span>
+                    </div>
+                    <div class="food-item">
+                        <div class="food-icon green"></div>
+                        <span>Green: Phase mode (3s)</span>
+                    </div>
+                    <div class="food-item">
+                        <div class="food-icon purple"></div>
+                        <span>Purple: Slow time (5s)</span>
+                    </div>
+                </div>
+
+                <button class="button" onclick="startGame()">START GAME</button>
+                <button class="button" onclick="showLeaderboard()">LEADERBOARD</button>
+
+                <div class="controls">
+                    <p>Controls: WASD or Arrow Keys | Pause: SPACE</p>
+                </div>
+            </div>
+
+            <!-- Pause Screen -->
+            <div class="screen hidden" id="pauseScreen">
+                <h2 class="title">GAME PAUSED</h2>
+                <button class="button" onclick="resumeGame()">RESUME</button>
+                <button class="button" onclick="restartGame()">RESTART</button>
+                <button class="button" onclick="goToMenu()">MAIN MENU</button>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div class="screen hidden" id="gameOverScreen">
+                <h2 class="title">GAME OVER</h2>
+                <div class="leaderboard">
+                    <div class="score-item">
+                        <span>Final Score:</span>
+                        <span id="finalScore">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Level Reached:</span>
+                        <span id="finalLevel">1</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Max Length:</span>
+                        <span id="finalLength">1</span>
+                    </div>
+                </div>
+                <input type="text" class="name-input" id="playerName" placeholder="Enter your name" maxlength="12">
+                <button class="button" onclick="saveScore()">SAVE SCORE</button>
+                <button class="button" onclick="restartGame()">PLAY AGAIN</button>
+                <button class="button" onclick="goToMenu()">MAIN MENU</button>
+            </div>
+
+            <!-- Leaderboard Screen -->
+            <div class="screen hidden" id="leaderboardScreen">
+                <h2 class="title">LEADERBOARD</h2>
+                <div class="leaderboard" id="leaderboardList">
+                    <!-- Leaderboard entries will be populated here -->
+                </div>
+                <button class="button" onclick="goToMenu()">BACK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="touch.js"></script>
+    <script src="snake.js"></script>
+</body>
+
+</html>
