@@ -545,12 +545,78 @@ const Game = {
             this.mouseY = e.clientY - rect.top;
         });
 
-        // Touch movement
+        // Touch movement - completely rewritten for multi-touch support
         this.canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const rect = this.canvas.getBoundingClientRect();
-            this.mouseX = e.touches[0].clientX - rect.left;
-            this.mouseY = e.touches[0].clientY - rect.top;
+            const halfWidth = this.canvas.width / 2;
+
+            // Process all touch points
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
+
+                // Determine which player this touch belongs to based on X position
+                if (touchX <= halfWidth) {
+                    // Player 1 (left side)
+                    this.mouseX = touchX;
+                    this.mouseY = touchY;
+                } else if (!GameState.isSinglePlayer) {
+                    // Player 2 (right side) - only in two-player mode
+                    if (!this.player2Touch) this.player2Touch = {};
+                    this.player2Touch.x = touchX;
+                    this.player2Touch.y = touchY;
+                }
+            }
+        });
+
+        // Also handle touchstart to immediately capture positions
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = this.canvas.getBoundingClientRect();
+            const halfWidth = this.canvas.width / 2;
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
+
+                if (touchX <= halfWidth) {
+                    this.mouseX = touchX;
+                    this.mouseY = touchY;
+                } else if (!GameState.isSinglePlayer) {
+                    if (!this.player2Touch) this.player2Touch = {};
+                    this.player2Touch.x = touchX;
+                    this.player2Touch.y = touchY;
+                }
+            }
+        });
+
+        // Handle touchend to clear player touches when needed
+        this.canvas.addEventListener('touchend', (e) => {
+            // If all touches are gone, clear player2Touch
+            if (e.touches.length === 0) {
+                this.player2Touch = null;
+            } else {
+                // Otherwise, check remaining touches to see if player2Touch should be cleared
+                let player2TouchExists = false;
+                const rect = this.canvas.getBoundingClientRect();
+                const halfWidth = this.canvas.width / 2;
+
+                for (let i = 0; i < e.touches.length; i++) {
+                    const touch = e.touches[i];
+                    const touchX = touch.clientX - rect.left;
+                    if (touchX > halfWidth) {
+                        player2TouchExists = true;
+                        break;
+                    }
+                }
+
+                if (!player2TouchExists) {
+                    this.player2Touch = null;
+                }
+            }
         });
 
         // Window resize
@@ -737,6 +803,38 @@ const Game = {
             // Update AI opponent in single player mode
             if (GameState.isSinglePlayer) {
                 this.updateAI(scaledDeltaTime);
+            } else {
+                // Two-player mode: Update opponent mallet based on player2Touch
+                if (this.player2Touch) {
+                    const halfWidth = this.canvas.width / 2;
+                    const courtRight = (this.canvas.width + this.courtWidth) / 2;
+                    const courtTop = (this.canvas.height - this.courtHeight) / 2;
+
+                    // Constrain to right half of court for player 2
+                    let targetX = Math.max(this.player2Touch.x, halfWidth);
+                    targetX = Math.min(targetX, courtRight - this.opponentMallet.radius);
+
+                    // Constrain to court height
+                    let targetY = Math.max(this.player2Touch.y, courtTop + this.opponentMallet.radius);
+                    targetY = Math.min(targetY, courtTop + this.courtHeight - this.opponentMallet.radius);
+
+                    // Calculate velocity (with speed control)
+                    this.opponentMallet.vx = (targetX - this.opponentMallet.x) / scaledDeltaTime;
+                    this.opponentMallet.vy = (targetY - this.opponentMallet.y) / scaledDeltaTime;
+
+                    // Limit mallet speed
+                    const malletSpeed = Math.sqrt(this.opponentMallet.vx * this.opponentMallet.vx +
+                        this.opponentMallet.vy * this.opponentMallet.vy);
+                    if (malletSpeed > Config.MALLET_MAX_SPEED) {
+                        const scale = Config.MALLET_MAX_SPEED / malletSpeed;
+                        this.opponentMallet.vx *= scale;
+                        this.opponentMallet.vy *= scale;
+                    }
+
+                    // Update position
+                    this.opponentMallet.x = targetX;
+                    this.opponentMallet.y = targetY;
+                }
             }
 
             // Update puck with speed control
@@ -762,7 +860,7 @@ const Game = {
         // Simple AI: follow the puck with some delay based on difficulty
         const difficulty = Config.AI_DIFFICULTY;
         // Reduce reaction speed by applying game speed multiplier
-        const reactionSpeed = (0.05 + (difficulty / 10) * 0.5) * Config.GAME_SPEED; // Slower reaction
+        const reactionSpeed = (0.05 + (difficulty / 10) * 0.5) * Config.GAME_SPEED;
 
         // Limit mallet to right half of court
         const halfWidth = this.canvas.width / 2;
@@ -770,47 +868,86 @@ const Game = {
         const courtTop = (this.canvas.height - this.courtHeight) / 2;
         const courtBottom = courtTop + this.courtHeight;
 
-        // Target position (with some prediction based on puck velocity)
-        // Reduce prediction to make AI less perfect
-        let targetX = this.puck.x + this.puck.vx * 0.3;
-        let targetY = this.puck.y + this.puck.vy * 0.3;
+        // Get puck state
+        const isInCorner = this.isPuckStuckInCorner();
 
-        // Add more randomness to make AI less perfect
+        // Target position variables
+        let targetX, targetY;
+
+        // NORMAL AI BEHAVIOR
+        // Add slight prediction based on puck velocity and difficulty
+        const predictionFactor = difficulty / 20;
+        targetX = this.puck.x + this.puck.vx * predictionFactor;
+        targetY = this.puck.y + this.puck.vy * predictionFactor;
+
+        // Add randomness based on inverse of difficulty
         const randomFactor = (11 - difficulty) / 10;
-        targetX += (Math.random() * 2 - 1) * randomFactor * 80;
-        targetY += (Math.random() * 2 - 1) * randomFactor * 80;
+        targetX += (Math.random() * 2 - 1) * randomFactor * 50;
+        targetY += (Math.random() * 2 - 1) * randomFactor * 50;
 
-        // Constrain to right half of court
-        targetX = Math.max(targetX, halfWidth);
-        targetX = Math.min(targetX, courtRight - this.opponentMallet.radius);
+        // Move towards target with standard reaction speed
+        {
+            const dx = targetX - this.opponentMallet.x;
+            const dy = targetY - this.opponentMallet.y;
+            this.opponentMallet.x += dx * reactionSpeed;
+            this.opponentMallet.y += dy * reactionSpeed;
+        }
 
-        // Constrain to court height
-        targetY = Math.max(targetY, courtTop + this.opponentMallet.radius);
-        targetY = Math.min(targetY, courtBottom - this.opponentMallet.radius);
+        // Constrain final position to court bounds
+        this.opponentMallet.x = Math.max(this.opponentMallet.x, halfWidth + this.opponentMallet.radius * 0.1);
+        this.opponentMallet.x = Math.min(this.opponentMallet.x, courtRight - this.opponentMallet.radius);
+        this.opponentMallet.y = Math.max(this.opponentMallet.y, courtTop + this.opponentMallet.radius);
+        this.opponentMallet.y = Math.min(this.opponentMallet.y, courtBottom - this.opponentMallet.radius);
 
-        // Move towards target with reaction speed
-        const dx = targetX - this.opponentMallet.x;
-        const dy = targetY - this.opponentMallet.y;
+        // Calculate and limit AI mallet speed
+        {
+            let dx = 0, dy = 0;
+            if (!isInCorner) {
+                dx = targetX - this.opponentMallet.x;
+                dy = targetY - this.opponentMallet.y;
+            }
+            this.opponentMallet.vx = dx * reactionSpeed / deltaTime;
+            this.opponentMallet.vy = dy * reactionSpeed / deltaTime;
+        }
 
-        // Apply movement with speed control
-        this.opponentMallet.x += dx * reactionSpeed;
-        this.opponentMallet.y += dy * reactionSpeed;
 
-        // Calculate velocity
-        this.opponentMallet.vx = dx * reactionSpeed / deltaTime;
-        this.opponentMallet.vy = dy * reactionSpeed / deltaTime;
-
-        // Limit AI mallet speed
         const malletSpeed = Math.sqrt(
             this.opponentMallet.vx * this.opponentMallet.vx +
             this.opponentMallet.vy * this.opponentMallet.vy
         );
 
-        if (malletSpeed > Config.MALLET_MAX_SPEED * 0.8) { // AI is slightly slower than player
+        if (malletSpeed > Config.MALLET_MAX_SPEED * 0.8) {
             const scale = (Config.MALLET_MAX_SPEED * 0.8) / malletSpeed;
             this.opponentMallet.vx *= scale;
             this.opponentMallet.vy *= scale;
         }
+    },
+
+    isPuckStuckInCorner: function () {
+        // Court boundaries
+        const courtLeft = (this.canvas.width - this.courtWidth) / 2;
+        const courtRight = courtLeft + this.courtWidth;
+        const courtTop = (this.canvas.height - this.courtHeight) / 2;
+        const courtBottom = courtTop + this.courtHeight;
+
+        // Distance from puck to walls
+        const distToRight = courtRight - this.puck.x;
+        const distToLeft = this.puck.x - courtLeft;
+        const distToTop = this.puck.y - courtTop;
+        const distToBottom = courtBottom - this.puck.y;
+
+        // Check if puck is near a corner and moving slowly
+        const cornerProximity = this.puck.radius * 3;
+        const puckSpeed = Math.sqrt(this.puck.vx * this.puck.vx + this.puck.vy * this.puck.vy);
+        const isSlowMoving = puckSpeed < 100 * Config.GAME_SPEED;
+
+        // Check each corner
+        const inTopLeft = distToLeft < cornerProximity && distToTop < cornerProximity;
+        const inTopRight = distToRight < cornerProximity && distToTop < cornerProximity;
+        const inBottomLeft = distToLeft < cornerProximity && distToBottom < cornerProximity;
+        const inBottomRight = distToRight < cornerProximity && distToBottom < cornerProximity;
+
+        return isSlowMoving && (inTopLeft || inTopRight || inBottomLeft || inBottomRight);
     },
 
     checkCollisions: function () {
@@ -859,6 +996,78 @@ const Game = {
         // Check if collision occurred
         const minDistance = this.puck.radius + mallet.radius;
         if (distance < minDistance) {
+
+            // If the puck is in the corner move it so that
+            // - The mallet is between it and the corner
+            // - The puck speed is towards the center of the court and equals to the mallet speed
+            {
+                // Check if puck is in a corner
+                const courtLeft = (this.canvas.width - this.courtWidth) / 2;
+                const courtRight = courtLeft + this.courtWidth;
+                const courtTop = (this.canvas.height - this.courtHeight) / 2;
+                const courtBottom = courtTop + this.courtHeight;
+
+                const cornerProximity = this.puck.radius * 1.2;
+                const distToLeft = this.puck.x - courtLeft;
+                const distToRight = courtRight - this.puck.x;
+                const distToTop = this.puck.y - courtTop;
+                const distToBottom = courtBottom - this.puck.y;
+
+                const isNearLeftWall = distToLeft < cornerProximity;
+                const isNearRightWall = distToRight < cornerProximity;
+                const isNearTopWall = distToTop < cornerProximity;
+                const isNearBottomWall = distToBottom < cornerProximity;
+
+                const isInCorner = (isNearLeftWall || isNearRightWall) && (isNearTopWall || isNearBottomWall);
+
+                if (isInCorner) {
+                    // Find which corner the puck is in
+                    let cornerX, cornerY;
+
+                    if (isNearLeftWall && isNearTopWall) {
+                        cornerX = courtLeft;
+                        cornerY = courtTop;
+                    } else if (isNearRightWall && isNearTopWall) {
+                        cornerX = courtRight;
+                        cornerY = courtTop;
+                    } else if (isNearLeftWall && isNearBottomWall) {
+                        cornerX = courtLeft;
+                        cornerY = courtBottom;
+                    } else { // right bottom
+                        cornerX = courtRight;
+                        cornerY = courtBottom;
+                    }
+
+                    // Calculate vector from corner to court center
+                    const courtCenterX = this.canvas.width / 2;
+                    const courtCenterY = this.canvas.height / 2;
+                    const toCenterX = courtCenterX - cornerX;
+                    const toCenterY = courtCenterY - cornerY;
+                    const toCenterLength = Math.sqrt(toCenterX * toCenterX + toCenterY * toCenterY);
+
+                    if (toCenterLength > 0) {
+                        // Normalize vector towards center
+                        const normalizedX = toCenterX / toCenterLength;
+                        const normalizedY = toCenterY / toCenterLength;
+
+                        // Position puck so mallet is between it and corner
+                        const malletToPuckDistance = this.puck.radius + mallet.radius + 5;
+                        this.puck.x = mallet.x + normalizedX * malletToPuckDistance;
+                        this.puck.y = mallet.y + normalizedY * malletToPuckDistance;
+
+                        // Set puck velocity towards center matching mallet speed
+                        const malletSpeed = Math.sqrt(mallet.vx * mallet.vx + mallet.vy * mallet.vy);
+                        const targetSpeed = malletSpeed;
+
+                        this.puck.vx = 1;
+                        this.puck.vy = 1;
+
+                        // Early return to skip normal collision handling
+                        return;
+                    }
+                }
+            }
+
             // Calculate collision normal
             const nx = dx / distance;
             const ny = dy / distance;
@@ -879,15 +1088,15 @@ const Game = {
             if (velAlongNormal > 0) return;
 
             // Calculate impulse scalar with reduced force
-            const restitution = Config.RESTITUTION;
+            const restitution = Config.RESTITUTION * 0.5; // Reduce restitution for less bouncy collisions
             // Reduce the impulse magnitude for slower gameplay
-            const impulseMagnitude = -(1 + restitution) * velAlongNormal * Config.GAME_SPEED;
+            const impulseMagnitude = -(1 + restitution) * velAlongNormal * Config.GAME_SPEED * 0.7; // Further reduce impulse
             const totalMass = Config.PUCK_MASS + Config.MALLET_MASS;
             const impulse = impulseMagnitude / totalMass;
 
             // Apply impulse with additional damping
-            this.puck.vx += impulse * Config.MALLET_MASS * nx * 0.8; // 20% reduction
-            this.puck.vy += impulse * Config.MALLET_MASS * ny * 0.8; // 20% reduction
+            this.puck.vx += impulse * Config.MALLET_MASS * nx * 0.6; // Increase reduction to 40%
+            this.puck.vy += impulse * Config.MALLET_MASS * ny * 0.6; // Increase reduction to 40%
 
             // Play collision sound with intensity based on relative speed
             const relativeSpeed = Math.sqrt(rvx * rvx + rvy * rvy);
@@ -896,10 +1105,9 @@ const Game = {
                 AudioSystem.playMalletHit(soundIntensity);
             }
 
-            // Add a small amount of the mallet's velocity to the puck
-            // This makes the game feel more responsive
-            this.puck.vx += mallet.vx * 0.3 * Config.GAME_SPEED;
-            this.puck.vy += mallet.vy * 0.3 * Config.GAME_SPEED;
+            // Reduce the mallet velocity transfer
+            this.puck.vx += mallet.vx * 0.15 * Config.GAME_SPEED; // Reduce from 0.3 to 0.15
+            this.puck.vy += mallet.vy * 0.15 * Config.GAME_SPEED; // Reduce from 0.3 to 0.15
 
             // Limit puck speed
             const puckSpeed = Math.sqrt(this.puck.vx * this.puck.vx + this.puck.vy * this.puck.vy);
