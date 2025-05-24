@@ -16,6 +16,7 @@ let lastTime = 0;
 let snake = [{ x: 10, y: 10 }];
 let direction = { x: 0, y: 0 };
 let nextDirection = { x: 0, y: 0 };
+let directionQueue = []; // Queue to store pending direction changes
 
 // Grid size
 const gridSize = 20;
@@ -216,8 +217,35 @@ function drawObstacles() {
     ctx.shadowBlur = 0;
 }
 
+// Direction queue management
+function addDirectionToQueue(newDirection) {
+    // Don't add if queue is too long (max 2 pending moves)
+    if (directionQueue.length >= 2) {
+        return;
+    }
+
+    // Get the last direction in queue, or current direction if queue is empty
+    const lastDirection = directionQueue.length > 0 ?
+        directionQueue[directionQueue.length - 1] : direction;
+
+    // Don't add if it's opposite to the last direction (would cause self-collision)
+    if (lastDirection.x === -newDirection.x && lastDirection.y === -newDirection.y) {
+        console.log('Opposite direction blocked to prevent self-collision');
+        return;
+    }
+
+    // Add the new direction to the queue
+    directionQueue.push(newDirection);
+
+}
+
 // Snake movement and logic
 function moveSnake() {
+    // Process next direction from queue if available
+    if (directionQueue.length > 0) {
+        nextDirection = directionQueue.shift();
+    }
+
     direction = { ...nextDirection };
 
     if (direction.x === 0 && direction.y === 0) return;
@@ -435,16 +463,16 @@ function initializeTouchController() {
 
         switch (direction) {
             case 'up':
-                if (nextDirection.y !== 1) nextDirection = { x: 0, y: -1 };
+                addDirectionToQueue({ x: 0, y: -1 });
                 break;
             case 'down':
-                if (nextDirection.y !== -1) nextDirection = { x: 0, y: 1 };
+                addDirectionToQueue({ x: 0, y: 1 });
                 break;
             case 'left':
-                if (nextDirection.x !== 1) nextDirection = { x: -1, y: 0 };
+                addDirectionToQueue({ x: -1, y: 0 });
                 break;
             case 'right':
-                if (nextDirection.x !== -1) nextDirection = { x: 1, y: 0 };
+                addDirectionToQueue({ x: 1, y: 0 });
                 break;
         }
     });
@@ -462,51 +490,14 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeTouchController();
         setupButtonTouchSupport();
-        addDebugButton(); // Add debug button for testing
     });
 } else {
     initializeTouchController();
     setupButtonTouchSupport();
-    addDebugButton(); // Add debug button for testing
-}
-
-// Add a debug button to test touch functionality
-function addDebugButton() {
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'DEBUG START';
-    debugBtn.style.position = 'fixed';
-    debugBtn.style.top = '10px';
-    debugBtn.style.right = '10px';
-    debugBtn.style.zIndex = '1000';
-    debugBtn.style.padding = '10px';
-    debugBtn.style.backgroundColor = 'red';
-    debugBtn.style.color = 'white';
-    debugBtn.style.border = 'none';
-    debugBtn.style.borderRadius = '5px';
-
-    debugBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Debug button touched!');
-        alert('Debug button works! Starting game...');
-        startGame();
-    });
-
-    debugBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Debug button clicked!');
-        alert('Debug button works! Starting game...');
-        startGame();
-    });
-
-    document.body.appendChild(debugBtn);
 }
 
 // Setup button event listeners for iOS compatibility
 function setupButtonTouchSupport() {
-    console.log('Setting up button touch support'); // Debug log
-
     // Add event listeners for all buttons
     const buttonMappings = {
         'startGameBtn': startGame,
@@ -523,12 +514,10 @@ function setupButtonTouchSupport() {
     Object.keys(buttonMappings).forEach(buttonId => {
         const button = document.getElementById(buttonId);
         if (button) {
-            console.log(`Setting up button: ${buttonId}`); // Debug log
             const handler = buttonMappings[buttonId];
 
             // Add click event listener
             button.addEventListener('click', (e) => {
-                console.log(`Button clicked: ${buttonId}`); // Debug log
                 e.preventDefault();
                 e.stopPropagation();
                 handler();
@@ -536,29 +525,23 @@ function setupButtonTouchSupport() {
 
             // Add touch event listeners for iOS
             button.addEventListener('touchstart', function (e) {
-                console.log(`Button touch start: ${buttonId}`); // Debug log
                 e.stopPropagation();
                 this.classList.add('active');
             }, { passive: true });
 
             button.addEventListener('touchend', function (e) {
-                console.log(`Button touch end: ${buttonId}`); // Debug log
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.remove('active');
                 // Trigger the handler directly
                 setTimeout(() => {
-                    console.log(`Executing handler for: ${buttonId}`); // Debug log
                     handler();
                 }, 100);
             });
 
             button.addEventListener('touchcancel', function () {
-                console.log(`Button touch cancel: ${buttonId}`); // Debug log
                 this.classList.remove('active');
             }, { passive: true });
-        } else {
-            console.log(`Button not found: ${buttonId}`); // Debug log
         }
     });
 }
@@ -576,6 +559,7 @@ function startGame() {
     snake = [{ x: 10, y: 10 }];
     direction = { x: 0, y: 0 };
     nextDirection = { x: 1, y: 0 };
+    directionQueue = []; // Clear direction queue
     score = 0;
     level = 1;
     gameSpeed = 150;
