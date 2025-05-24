@@ -168,6 +168,14 @@ h2.title {
     margin: 10px;
     transition: all 0.3s ease;
     box-shadow: 0 0 20px #00ffff50;
+    /* iOS touch improvements */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .button:hover {
@@ -175,8 +183,10 @@ h2.title {
     box-shadow: 0 5px 25px #00ffff70;
 }
 
-.button:active {
+.button:active,
+.button.active {
     transform: translateY(0);
+    background: linear-gradient(45deg, #0080ff, #00ffff);
 }
 
 .controls {

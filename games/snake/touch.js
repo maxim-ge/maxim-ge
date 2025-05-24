@@ -270,6 +270,14 @@ class TouchController {
     }
 
     handleTouchStart(e) {
+        // Don't prevent default if touching a button or interactive element
+        const target = e.target;
+        if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' ||
+            target.closest('button') || target.closest('input') ||
+            target.classList.contains('button')) {
+            return; // Let the button handle the touch
+        }
+
         e.preventDefault();
         const touches = e.changedTouches;
 
@@ -280,6 +288,14 @@ class TouchController {
     }
 
     handleTouchMove(e) {
+        // Don't prevent default if touching a button or interactive element
+        const target = e.target;
+        if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' ||
+            target.closest('button') || target.closest('input') ||
+            target.classList.contains('button')) {
+            return; // Let the button handle the touch
+        }
+
         e.preventDefault();
         const touches = e.changedTouches;
 

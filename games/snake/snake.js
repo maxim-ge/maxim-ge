@@ -459,13 +459,49 @@ function initializeTouchController() {
 
 // Initialize touch controller when DOM is loaded
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeTouchController);
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTouchController();
+        setupButtonTouchSupport();
+    });
 } else {
     initializeTouchController();
+    setupButtonTouchSupport();
+}
+
+// Setup touch support for buttons on iOS
+function setupButtonTouchSupport() {
+    const buttons = document.querySelectorAll('.button, button');
+    buttons.forEach(button => {
+        // Add touch event listeners for iOS compatibility
+        button.addEventListener('touchstart', function (e) {
+            e.stopPropagation(); // Prevent TouchController from handling this
+            this.classList.add('active');
+        }, { passive: true });
+
+        button.addEventListener('touchend', function (e) {
+            e.stopPropagation(); // Prevent TouchController from handling this
+            this.classList.remove('active');
+            // Trigger click after a short delay to ensure proper handling
+            setTimeout(() => {
+                if (this.onclick) {
+                    this.onclick();
+                }
+            }, 50);
+        }, { passive: true });
+
+        button.addEventListener('touchcancel', function () {
+            this.classList.remove('active');
+        }, { passive: true });
+    });
 }
 
 // Game state management
 function startGame() {
+    // Resume audio context if needed (required for iOS)
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().catch(console.error);
+    }
+
     // Reset game state
     snake = [{ x: 10, y: 10 }];
     direction = { x: 0, y: 0 };
@@ -488,11 +524,6 @@ function startGame() {
 
     gameState = 'playing';
     showScreen('game');
-
-    // Resume audio context if needed
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
-    }
 }
 
 function pauseGame() {
