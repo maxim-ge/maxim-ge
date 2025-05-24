@@ -151,6 +151,17 @@ class TouchController {
     // =========== CORE POINTER INTERACTION LOGIC ===========
 
     pointerStart(pointerId, x, y) {
+        // Check if we're touching a button or interactive element
+        const elementAtPoint = document.elementFromPoint(x, y);
+        if (elementAtPoint && (
+            elementAtPoint.tagName === 'BUTTON' ||
+            elementAtPoint.classList.contains('button') ||
+            elementAtPoint.closest('button') ||
+            elementAtPoint.closest('.button')
+        )) {
+            return; // Don't handle button touches
+        }
+
         const playerId = this.playerIdFromPointer(x, y);
 
         if (!playerId) {

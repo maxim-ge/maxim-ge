@@ -462,41 +462,111 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeTouchController();
         setupButtonTouchSupport();
+        addDebugButton(); // Add debug button for testing
     });
 } else {
     initializeTouchController();
     setupButtonTouchSupport();
+    addDebugButton(); // Add debug button for testing
 }
 
-// Setup touch support for buttons on iOS
+// Add a debug button to test touch functionality
+function addDebugButton() {
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = 'DEBUG START';
+    debugBtn.style.position = 'fixed';
+    debugBtn.style.top = '10px';
+    debugBtn.style.right = '10px';
+    debugBtn.style.zIndex = '1000';
+    debugBtn.style.padding = '10px';
+    debugBtn.style.backgroundColor = 'red';
+    debugBtn.style.color = 'white';
+    debugBtn.style.border = 'none';
+    debugBtn.style.borderRadius = '5px';
+
+    debugBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Debug button touched!');
+        alert('Debug button works! Starting game...');
+        startGame();
+    });
+
+    debugBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Debug button clicked!');
+        alert('Debug button works! Starting game...');
+        startGame();
+    });
+
+    document.body.appendChild(debugBtn);
+}
+
+// Setup button event listeners for iOS compatibility
 function setupButtonTouchSupport() {
-    const buttons = document.querySelectorAll('.button, button');
-    buttons.forEach(button => {
-        // Add touch event listeners for iOS compatibility
-        button.addEventListener('touchstart', function (e) {
-            e.stopPropagation(); // Prevent TouchController from handling this
-            this.classList.add('active');
-        }, { passive: true });
+    console.log('Setting up button touch support'); // Debug log
 
-        button.addEventListener('touchend', function (e) {
-            e.stopPropagation(); // Prevent TouchController from handling this
-            this.classList.remove('active');
-            // Trigger click after a short delay to ensure proper handling
-            setTimeout(() => {
-                if (this.onclick) {
-                    this.onclick();
-                }
-            }, 50);
-        }, { passive: true });
+    // Add event listeners for all buttons
+    const buttonMappings = {
+        'startGameBtn': startGame,
+        'showLeaderboardBtn': showLeaderboard,
+        'resumeGameBtn': resumeGame,
+        'restartGameBtn': restartGame,
+        'goToMenuBtn': goToMenu,
+        'saveScoreBtn': saveScore,
+        'playAgainBtn': restartGame,
+        'goToMenuBtn2': goToMenu,
+        'backBtn': goToMenu
+    };
 
-        button.addEventListener('touchcancel', function () {
-            this.classList.remove('active');
-        }, { passive: true });
+    Object.keys(buttonMappings).forEach(buttonId => {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            console.log(`Setting up button: ${buttonId}`); // Debug log
+            const handler = buttonMappings[buttonId];
+
+            // Add click event listener
+            button.addEventListener('click', (e) => {
+                console.log(`Button clicked: ${buttonId}`); // Debug log
+                e.preventDefault();
+                e.stopPropagation();
+                handler();
+            });
+
+            // Add touch event listeners for iOS
+            button.addEventListener('touchstart', function (e) {
+                console.log(`Button touch start: ${buttonId}`); // Debug log
+                e.stopPropagation();
+                this.classList.add('active');
+            }, { passive: true });
+
+            button.addEventListener('touchend', function (e) {
+                console.log(`Button touch end: ${buttonId}`); // Debug log
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('active');
+                // Trigger the handler directly
+                setTimeout(() => {
+                    console.log(`Executing handler for: ${buttonId}`); // Debug log
+                    handler();
+                }, 100);
+            });
+
+            button.addEventListener('touchcancel', function () {
+                console.log(`Button touch cancel: ${buttonId}`); // Debug log
+                this.classList.remove('active');
+            }, { passive: true });
+        } else {
+            console.log(`Button not found: ${buttonId}`); // Debug log
+        }
     });
 }
 
 // Game state management
 function startGame() {
+    console.log('startGame() called'); // Debug log
+
     // Resume audio context if needed (required for iOS)
     if (audioContext.state === 'suspended') {
         audioContext.resume().catch(console.error);
@@ -524,6 +594,8 @@ function startGame() {
 
     gameState = 'playing';
     showScreen('game');
+
+    console.log('Game started, state:', gameState); // Debug log
 }
 
 function pauseGame() {

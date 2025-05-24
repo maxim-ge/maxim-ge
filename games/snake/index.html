@@ -77,8 +77,8 @@
                     </div>
                 </div>
 
-                <button class="button" onclick="startGame()">START GAME</button>
-                <button class="button" onclick="showLeaderboard()">LEADERBOARD</button>
+                <button class="button" id="startGameBtn">START GAME</button>
+                <button class="button" id="showLeaderboardBtn">LEADERBOARD</button>
 
                 <div class="controls">
                     <p>Controls: WASD or Arrow Keys | Pause: SPACE</p>
@@ -88,9 +88,9 @@
             <!-- Pause Screen -->
             <div class="screen hidden" id="pauseScreen">
                 <h2 class="title">GAME PAUSED</h2>
-                <button class="button" onclick="resumeGame()">RESUME</button>
-                <button class="button" onclick="restartGame()">RESTART</button>
-                <button class="button" onclick="goToMenu()">MAIN MENU</button>
+                <button class="button" id="resumeGameBtn">RESUME</button>
+                <button class="button" id="restartGameBtn">RESTART</button>
+                <button class="button" id="goToMenuBtn">MAIN MENU</button>
             </div>
 
             <!-- Game Over Screen -->
@@ -111,9 +111,9 @@
                     </div>
                 </div>
                 <input type="text" class="name-input" id="playerName" placeholder="Enter your name" maxlength="12">
-                <button class="button" onclick="saveScore()">SAVE SCORE</button>
-                <button class="button" onclick="restartGame()">PLAY AGAIN</button>
-                <button class="button" onclick="goToMenu()">MAIN MENU</button>
+                <button class="button" id="saveScoreBtn">SAVE SCORE</button>
+                <button class="button" id="playAgainBtn">PLAY AGAIN</button>
+                <button class="button" id="goToMenuBtn2">MAIN MENU</button>
             </div>
 
             <!-- Leaderboard Screen -->
@@ -122,7 +122,7 @@
                 <div class="leaderboard" id="leaderboardList">
                     <!-- Leaderboard entries will be populated here -->
                 </div>
-                <button class="button" onclick="goToMenu()">BACK</button>
+                <button class="button" id="backBtn">BACK</button>
             </div>
         </div>
     </div>
