@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Totality over Marbella — 2 August 2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,900&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root{
+    --sky:#0A0D1C;
+    --panel:#121830;
+    --panel-2:#0E1428;
+    --horizon:#3A2E5C;
+    --pearl:#F6F3EA;
+    --rose:#FF5E6C;
+    --gold:#FFC24B;
+    --muted:#9AA0B8;
+    --line:rgba(246,243,234,.12);
+    --dark:0; /* 0 = day, 1 = totality; driven by JS */
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:
+      radial-gradient(120% 80% at 50% -10%,
+        rgba(58,46,92, calc(.35 + .25*var(--dark))),
+        transparent 60%),
+      var(--sky);
+    color:var(--pearl);
+    font-family:Inter,system-ui,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    transition:background .3s linear;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  a{color:var(--gold);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    position:relative;
+    padding:64px 0 40px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    letter-spacing:.34em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:22px;
+  }
+  h1{
+    font-family:Fraunces,serif;
+    font-weight:900;
+    font-size:clamp(40px,8vw,88px);
+    line-height:.98;
+    letter-spacing:-.02em;
+    margin:0 0 8px;
+  }
+  h1 em{font-style:italic;font-weight:300;color:var(--gold)}
+  .sub{
+    font-family:Fraunces,serif;
+    font-weight:300;
+    font-size:clamp(17px,2.4vw,22px);
+    color:var(--muted);
+    margin:0 auto 30px;
+    max-width:44ch;
+  }
+
+  /* ---------- ECLIPSE STAGE ---------- */
+  .stage{position:relative;width:min(440px,86vw);aspect-ratio:1;margin:8px auto 6px}
+  .stage svg{width:100%;height:100%;display:block;overflow:visible}
+  #phaseLabel{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);min-height:1.2em;margin-top:2px;
+  }
+  #clock{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:clamp(28px,5vw,40px);
+    font-weight:500;letter-spacing:.02em;
+    color:var(--pearl);margin:2px 0 0;
+  }
+
+  /* ---------- SCRUBBER ---------- */
+  .controls{width:min(560px,92vw);margin:22px auto 0}
+  .btnrow{display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+  button.ctl{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;
+    letter-spacing:.08em;text-transform:uppercase;
+    background:transparent;color:var(--pearl);
+    border:1px solid var(--line);border-radius:999px;
+    padding:9px 16px;cursor:pointer;transition:.18s;
+  }
+  button.ctl:hover{border-color:var(--gold);color:var(--gold)}
+  button.ctl.primary{border-color:var(--gold);color:var(--gold)}
+  .track{position:relative;margin:4px 4px 0}
+  input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer}
+  .ticks{position:relative;height:34px;margin-top:2px;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+  .tick{position:absolute;transform:translateX(-50%);text-align:center;top:0}
+  .tick::before{content:"";display:block;width:1px;height:7px;background:var(--line);margin:0 auto 3px}
+  .tick.tot::before{background:var(--rose);height:10px}
+  .tick.tot{color:var(--rose)}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  .sec-eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;
+    letter-spacing:.28em;text-transform:uppercase;color:var(--gold);
+    margin-bottom:14px;
+  }
+  h2{font-family:Fraunces,serif;font-weight:600;font-size:clamp(26px,4vw,38px);letter-spacing:-.01em;margin:0 0 20px}
+  h3{font-family:Fraunces,serif;font-weight:600;font-size:20px;margin:0 0 6px}
+  p.lead{font-size:18px;color:#C9CCDD;max-width:64ch}
+
+  .grid{display:grid;gap:16px}
+  .facts{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:16px;padding:20px;
+  }
+  .card .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .card .v{font-family:Fraunces,serif;font-size:clamp(24px,4vw,34px);font-weight:600;margin-top:6px}
+  .card .v small{font-size:14px;color:var(--muted);font-family:Inter,sans-serif;font-weight:400}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
+  th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  td.time{font-family:"IBM Plex Mono",monospace;color:var(--gold)}
+  tr.hl td{background:rgba(255,94,108,.08)}
+  tr.hl td.time{color:var(--rose)}
+
+  .two{grid-template-columns:1fr 1fr}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
+
+  /* viewing compass */
+  .sky-diagram{background:linear-gradient(180deg,#0E1430,#0A0D1C);border:1px solid var(--line);border-radius:16px;padding:8px}
+  .sky-diagram svg{width:100%;height:auto;display:block}
+
+  .detail-list{list-style:none;padding:0;margin:0;display:grid;gap:2px}
+  .detail-list li{padding:16px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:baseline}
+  .detail-list .n{font-family:"IBM Plex Mono",monospace;color:var(--rose);font-size:13px}
+  .detail-list h3{margin-bottom:2px}
+  .detail-list p{margin:0;color:var(--muted);font-size:15px}
+
+  #map{height:420px;border-radius:16px;border:1px solid var(--line);overflow:hidden;margin-top:8px;background:var(--panel)}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--pearl);border-radius:12px}
+  .leaflet-popup-tip{background:var(--panel)}
+  .leaflet-popup-content{font-family:Inter,sans-serif}
+  .leaflet-popup-content b{font-family:Fraunces,serif}
+
+  .safety{background:linear-gradient(180deg,rgba(255,94,108,.10),transparent);border:1px solid rgba(255,94,108,.3)}
+
+  footer{padding:40px 0 64px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;font-family:"IBM Plex Mono",monospace}
+  .disclaimer{font-size:12px;color:var(--muted);margin-top:10px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Total Solar Eclipse · Costa del Sol</div>
+    <h1>Totality<br><em>over Marbella</em></h1>
+    <p class="sub">On 2 August 2027 the Moon's shadow crosses southern Spain. Marbella sits almost exactly on the centerline.</p>
+
+    <div class="stage">
+      <svg id="eclipse" viewBox="0 0 400 400" role="img" aria-label="Animated eclipse">
+        <defs>
+          <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFF4D6"/>
+            <stop offset="45%" stop-color="#FFC24B"/>
+            <stop offset="70%" stop-color="#FF9A2E"/>
+            <stop offset="100%" stop-color="rgba(255,154,46,0)"/>
+          </radialGradient>
+          <radialGradient id="corona" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(246,243,234,0)"/>
+            <stop offset="42%" stop-color="rgba(246,243,234,0)"/>
+            <stop offset="50%" stop-color="rgba(246,243,234,.9)"/>
+            <stop offset="60%" stop-color="rgba(214,222,255,.35)"/>
+            <stop offset="100%" stop-color="rgba(214,222,255,0)"/>
+          </radialGradient>
+          <radialGradient id="chromo" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,94,108,0)"/>
+            <stop offset="46%" stop-color="rgba(255,94,108,0)"/>
+            <stop offset="50%" stop-color="rgba(255,94,108,.85)"/>
+            <stop offset="55%" stop-color="rgba(255,94,108,0)"/>
+          </radialGradient>
+          <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+        </defs>
+
+        <!-- corona (revealed at totality) -->
+        <g id="coronaGroup" opacity="0">
+          <circle cx="200" cy="200" r="200" fill="url(#corona)"/>
+          <g id="streamers" stroke="rgba(246,243,234,.5)" stroke-width="1.2" filter="url(#soft)"></g>
+        </g>
+
+        <!-- sun -->
+        <circle id="sun" cx="200" cy="200" r="150" fill="url(#sunGlow)"/>
+        <!-- chromosphere ring flashes at 2nd/3rd contact -->
+        <circle id="chromoRing" cx="200" cy="200" r="150" fill="url(#chromo)" opacity="0"/>
+        <!-- moon -->
+        <circle id="moon" cx="-60" cy="200" r="153" fill="#080A16"/>
+        <!-- diamond ring spark -->
+        <circle id="diamond" r="7" fill="#FFFDF5" opacity="0"/>
+      </svg>
+    </div>
+
+    <div id="phaseLabel">First contact</div>
+    <div id="clock">09:41:38</div>
+
+    <div class="controls">
+      <div class="btnrow">
+        <button class="ctl primary" id="play">▶ Play sequence</button>
+        <button class="ctl" id="jump">Jump to totality</button>
+        <button class="ctl" id="reset">Reset</button>
+      </div>
+      <div class="track">
+        <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Eclipse timeline"/>
+        <div class="ticks" id="ticks"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- FACTS -->
+  <section id="facts">
+    <div class="sec-eyebrow">The numbers</div>
+    <h2>What happens, precisely</h2>
+    <div class="grid facts">
+      <div class="card"><div class="k">Obscuration</div><div class="v">100<small>%</small></div></div>
+      <div class="card"><div class="k">Magnitude</div><div class="v">1.0099</div></div>
+      <div class="card"><div class="k">Totality</div><div class="v">3<small>m</small> 21<small>s</small></div></div>
+      <div class="card"><div class="k">Whole event</div><div class="v">2<small>h</small> 20<small>m</small></div></div>
+    </div>
+
+    <div style="margin-top:26px" class="card">
+      <table>
+        <thead><tr><th>Contact</th><th>Local time (CEST)</th><th>What you see</th></tr></thead>
+        <tbody>
+          <tr><td>Partial begins (C1)</td><td class="time">09:41:38</td><td>A dark bite appears on the Sun's edge</td></tr>
+          <tr class="hl"><td>Totality begins (C2)</td><td class="time">10:46:47</td><td>Diamond ring, then the corona ignites</td></tr>
+          <tr class="hl"><td>Maximum</td><td class="time">10:48:27</td><td>Deepest darkness, full corona</td></tr>
+          <tr class="hl"><td>Totality ends (C3)</td><td class="time">10:50:08</td><td>Second diamond ring — look away now</td></tr>
+          <tr><td>Partial ends (C4)</td><td class="time">12:01:53</td><td>The Sun is whole again</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEWING DIRECTIONS -->
+  <section id="viewing">
+    <div class="sec-eyebrow">Where to look</div>
+    <h2>Face east‑southeast, look up</h2>
+    <div class="grid two">
+      <div>
+        <p class="lead">At maximum the Sun sits about 39° above the horizon toward the east‑southeast (azimuth ≈ 96°). That's a comfortable height — roughly halfway between the horizon and straight overhead.</p>
+        <ul class="detail-list" style="margin-top:14px">
+          <li><span class="n">↗</span><div><h3>Pick an open eastern horizon</h3><p>Sea‑facing spots on Marbella's coast are ideal — nothing tall to the ESE.</p></div></li>
+          <li><span class="n">◷</span><div><h3>Be in place by 10:30</h3><p>The last minutes before totality change fast — light, temperature, shadows.</p></div></li>
+          <li><span class="n">△</span><div><h3>Watch the ground too</h3><p>Shadow bands may ripple across pale surfaces seconds before and after totality.</p></div></li>
+        </ul>
+      </div>
+      <div class="sky-diagram">
+        <svg viewBox="0 0 400 300" role="img" aria-label="Sun position diagram">
+          <!-- ground -->
+          <rect x="0" y="230" width="400" height="70" fill="rgba(58,46,92,.35)"/>
+          <line x1="0" y1="230" x2="400" y2="230" stroke="var(--line)"/>
+          <!-- altitude arc -->
+          <path d="M40 230 A190 190 0 0 1 360 230" fill="none" stroke="var(--line)" stroke-dasharray="3 5"/>
+          <!-- sun at az~96 (near E, plotted right-of-centre), alt 39 -->
+          <g>
+            <circle cx="300" cy="128" r="34" fill="url(#sunGlow)"/>
+            <circle cx="300" cy="128" r="16" fill="#080A16"/>
+            <circle cx="300" cy="128" r="34" fill="url(#corona)" opacity=".9"/>
+          </g>
+          <text x="300" y="90" text-anchor="middle" fill="var(--pearl)" font-family="IBM Plex Mono, monospace" font-size="12">≈39° up</text>
+          <!-- compass labels -->
+          <text x="40" y="252" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="12">N</text>
+          <text x="200" y="252" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="12">E</text>
+          <text x="300" y="252" text-anchor="middle" fill="var(--rose)" font-family="IBM Plex Mono, monospace" font-size="12">ESE ← Sun</text>
+          <text x="360" y="252" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="12">S</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- COOL DETAILS -->
+  <section id="details">
+    <div class="sec-eyebrow">During those 3 minutes</div>
+    <h2>The things nobody photographs well</h2>
+    <ul class="detail-list">
+      <li><span class="n">01</span><div><h3>The diamond ring</h3><p>The final sliver of photosphere blazes through a lunar valley — one brilliant point on a thin ring. It bookends totality at both ends.</p></div></li>
+      <li><span class="n">02</span><div><h3>Baily's beads</h3><p>Sunlight streams through gaps between lunar mountains, breaking the crescent into a string of glittering beads.</p></div></li>
+      <li><span class="n">03</span><div><h3>The corona</h3><p>The Sun's million‑degree outer atmosphere — pearly white streamers you can only ever see with the disc fully hidden. No two eclipses look alike.</p></div></li>
+      <li><span class="n">04</span><div><h3>The chromosphere</h3><p>A thin scarlet rim and occasional pink prominences flare at the Moon's edge for a few seconds at each contact.</p></div></li>
+      <li><span class="n">05</span><div><h3>A 360° sunset</h3><p>You're standing in a shadow ~100 km wide. Beyond its edge the sky still glows, so sunset colours wrap the entire horizon.</p></div></li>
+      <li><span class="n">06</span><div><h3>The temperature drops</h3><p>Expect a sudden 5–8 °C fall and a hush — birds roost, cicadas quieten, the sea breeze shifts.</p></div></li>
+      <li><span class="n">07</span><div><h3>Planets and stars at midday</h3><p>Venus and bright stars pop out around the blackened Sun in the middle of a summer morning.</p></div></li>
+    </ul>
+  </section>
+
+  <!-- MAP -->
+  <section id="location">
+    <div class="sec-eyebrow">On the ground</div>
+    <h2>Marbella on the centerline</h2>
+    <p class="lead">The closer you are to the centerline, the longer totality lasts. Marbella runs right along it. Drag the map to scout an open east‑southeast view.</p>
+    <div id="map"></div>
+    <p class="disclaimer">Path band is illustrative, not survey‑grade — verify exact limits against official eclipse charts nearer the date.</p>
+  </section>
+
+  <!-- SAFETY -->
+  <section id="safety">
+    <div class="sec-eyebrow">Read this first</div>
+    <h2>Your eyes have one job</h2>
+    <div class="card safety">
+      <ul class="detail-list" style="margin:0">
+        <li><span class="n">✓</span><div><h3>Certified filters for every partial phase</h3><p>Use ISO 12312‑2 eclipse glasses or solar filters from 09:41 until totality, and again the instant it ends.</p></div></li>
+        <li><span class="n">◐</span><div><h3>Naked eye only during totality</h3><p>For the 3m 21s the disc is fully covered — and only then — it is safe and spectacular to look directly.</p></div></li>
+        <li><span class="n">⚠</span><div><h3>The second diamond ring is the warning</h3><p>The moment a bright point returns, filters go back on. No cameras or binoculars on the Sun without solar filters.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div>Marbella · 36.509° N, 4.880° W · Total Solar Eclipse of 2 August 2027</div>
+  <div class="disclaimer">Contact times as supplied for this location. Weather odds and Sun position are climatological/astronomical estimates — confirm with live forecasts and official charts before travelling.</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- eclipse geometry / scrubber ---------- */
+(function(){
+  const C = { c1:"09:41:38", c2:"10:46:47", max:"10:48:27", c3:"10:50:08", c4:"12:01:53" };
+  const toS = t => { const [h,m,s]=t.split(":").map(Number); return h*3600+m*60+s; };
+  const t1=toS(C.c1), t2=toS(C.c2), tm=toS(C.max), t3=toS(C.c3), t4=toS(C.c4);
+  const span = t4 - t1;
+  const p2=(t2-t1)/span, pm=(tm-t1)/span, p3=(t3-t1)/span;
+
+  const fmt = sec => { sec=Math.round(sec); const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60;
+    return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"); };
+
+  const sunR=150, moonR=153, cx=200, cy=200;
+  const dxMax = sunR+moonR;               // external tangency at C1/C4
+  const moon=document.getElementById("moon");
+  const coronaG=document.getElementById("coronaGroup");
+  const chromoRing=document.getElementById("chromoRing");
+  const diamond=document.getElementById("diamond");
+  const clock=document.getElementById("clock");
+  const label=document.getElementById("phaseLabel");
+  const scrub=document.getElementById("scrub");
+
+  // build corona streamers
+  const streamers=document.getElementById("streamers");
+  for(let i=0;i<48;i++){
+    const a=i/48*Math.PI*2, len=150+Math.random()*70;
+    const x1=cx+Math.cos(a)*152, y1=cy+Math.sin(a)*152;
+    const x2=cx+Math.cos(a)*len, y2=cy+Math.sin(a)*len;
+    const l=document.createElementNS("http://www.w3.org/2000/svg","line");
+    l.setAttribute("x1",x1);l.setAttribute("y1",y1);l.setAttribute("x2",x2);l.setAttribute("y2",y2);
+    l.setAttribute("stroke-opacity",(0.15+Math.random()*0.45).toFixed(2));
+    streamers.appendChild(l);
+  }
+
+  // circle-overlap obscuration (sun fraction covered)
+  function obscuration(d){
+    if(d>=sunR+moonR) return 0;
+    if(d<=Math.abs(moonR-sunR)) return 1;
+    const r=sunR,R=moonR;
+    const a=(d*d+r*r-R*R)/(2*d*r), b=(d*d+R*R-r*r)/(2*d*R);
+    const ca=Math.max(-1,Math.min(1,a)), cb=Math.max(-1,Math.min(1,b));
+    const area=r*r*Math.acos(ca)+R*R*Math.acos(cb)
+      -0.5*Math.sqrt(Math.max(0,(-d+r+R)*(d+r-R)*(d-r+R)*(d+r+R)));
+    return area/(Math.PI*r*r);
+  }
+
+  function render(p){
+    p=Math.max(0,Math.min(1,p));
+    const dxSigned = dxMax - p*2*dxMax;        // +dxMax -> -dxMax, linear in time
+    const d=Math.abs(dxSigned);
+    moon.setAttribute("cx", cx + dxSigned);
+
+    const obs=obscuration(d);
+    const total = d <= (moonR-sunR);
+
+    // sky darkening: stays bright until deep partial, then plunges
+    const dark = total ? 1 : Math.pow(Math.max(0,(obs-0.55)/0.45),2.2);
+    document.body.style.setProperty("--dark", dark.toFixed(3));
+
+    // corona
+    coronaG.setAttribute("opacity", total?1:0);
+
+    // diamond ring + chromosphere near 2nd/3rd contact
+    const near = (moonR-sunR)+10;             // just outside totality
+    let spark=0;
+    if(!total && d<near) spark=1-(d-(moonR-sunR))/10;
+    diamond.setAttribute("opacity", spark>0?spark:0);
+    chromoRing.setAttribute("opacity", total?0.9:(spark>0?spark*0.9:0));
+    if(spark>0){ // place the spark on the leading edge
+      const side=dxSigned>0?1:-1;
+      diamond.setAttribute("cx", cx - side*sunR);
+      diamond.setAttribute("cy", cy);
+    }
+
+    // clock + label
+    clock.textContent = fmt(t1 + p*span);
+    let ph;
+    if(p<=0.002) ph="First contact";
+    else if(total){ ph = (Math.abs(p-pm)<0.006)?"Maximum eclipse":"Totality"; }
+    else if(p<p2) ph="Partial — waxing";
+    else if(p>p3) ph="Partial — waning";
+    else ph="Contact";
+    label.textContent=ph;
+    label.style.color = total?"var(--rose)":"var(--muted)";
+
+    scrub.value = Math.round(p*1000);
+  }
+
+  // ticks
+  const ticks=document.getElementById("ticks");
+  [["C1",0],["C2",p2,true],["Max",pm,true],["C3",p3,true],["C4",1]].forEach(([lab,p,tot])=>{
+    const el=document.createElement("div");
+    el.className="tick"+(tot?" tot":"");
+    el.style.left=(p*100)+"%";
+    el.textContent=lab;
+    ticks.appendChild(el);
+  });
+
+  scrub.addEventListener("input",()=>render(scrub.value/1000));
+
+  // controls
+  let raf=null, playing=false;
+  const play=document.getElementById("play");
+  function stop(){cancelAnimationFrame(raf);playing=false;play.textContent="▶ Play sequence";}
+  play.addEventListener("click",()=>{
+    if(playing){stop();return;}
+    playing=true;play.textContent="❚❚ Pause";
+    let p=(scrub.value/1000)>=0.999?0:scrub.value/1000;
+    let last=performance.now();
+    (function loop(now){
+      const dt=(now-last)/1000; last=now;
+      // slow right down through totality so it's watchable
+      const near = Math.abs(p-pm)<0.02;
+      const speed = near?0.006:0.05;          // fraction per second
+      p+=speed*dt;
+      if(p>=1){p=1;render(p);stop();return;}
+      render(p);
+      raf=requestAnimationFrame(loop);
+    })(performance.now());
+  });
+  document.getElementById("jump").addEventListener("click",()=>{stop();render(pm);});
+  document.getElementById("reset").addEventListener("click",()=>{stop();render(0);});
+
+  render(0);
+})();
+
+/* ---------- map ---------- */
+(function(){
+  const lat=36.5089964, lng=-4.8795004;
+  const el=document.getElementById("map");
+  if(typeof L==="undefined"){
+    el.style.display="grid";
+    el.style.placeItems="center";
+    el.style.textAlign="center";
+    el.style.padding="24px";
+    el.innerHTML='<div><div style="font-family:Fraunces,serif;font-size:20px;margin-bottom:8px">Map couldn\'t load</div>'
+      +'<div style="color:var(--muted);font-size:14px;max-width:44ch;margin:0 auto 14px">The map library was blocked here (common in sandboxed previews). It works when the file is opened directly or hosted.</div>'
+      +'<a href="https://www.google.com/maps?q=36.5090,-4.8795&z=11" target="_blank" rel="noopener" '
+      +'style="font-family:IBM Plex Mono,monospace;font-size:13px;border:1px solid var(--gold);color:var(--gold);padding:9px 16px;border-radius:999px">Open Marbella in Maps ↗</a></div>';
+    return;
+  }
+  const map=L.map("map",{scrollWheelZoom:false}).setView([lat,lng],11);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:'© OpenStreetMap © CARTO', maxZoom:19
+  }).addTo(map);
+
+  // illustrative centerline through the region (W→E, slightly south)
+  const centerline=[[36.98,-6.30],[36.72,-5.35],[36.51,-4.88],[36.62,-4.10],[36.74,-3.00],[36.83,-2.10]];
+  L.polyline(centerline,{color:"#FF5E6C",weight:2,dashArray:"6 8",opacity:.8}).addTo(map)
+    .bindPopup("Approximate centerline of totality");
+
+  const marker=L.circleMarker([lat,lng],{radius:9,color:"#FFC24B",fillColor:"#FFC24B",fillOpacity:.9,weight:2}).addTo(map);
+  marker.bindPopup("<b>Marbella</b><br>On the centerline · totality 10:46:47–10:50:08 CEST (3m 21s)<br>Look ESE, ~39° up at 10:48.").openPopup();
+})();
+</script>
+</body>
+</html>
